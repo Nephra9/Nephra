@@ -12,6 +12,7 @@ import Home from './pages/Home'
 import About from './pages/About'
 import Projects from './pages/Projects/ProjectsList'
 import ProjectDetail from './pages/Projects/ProjectDetail'
+import ProjectApplyForm from './pages/Projects/ProjectApplyForm'
 import Team from './pages/Team'
 import Contact from './pages/Contact'
 import Privacy from './pages/Privacy'
@@ -86,7 +87,7 @@ const ProtectedRoute = ({ children, requiredRole = 'user' }) => {
             Account Inactive
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            {profile.status === 'suspended' 
+            {profile.status === 'suspended'
               ? 'Your account has been suspended. Please contact support.'
               : 'Your account is inactive. Please contact support to reactivate.'
             }
@@ -172,6 +173,15 @@ function App() {
             <ProjectDetail />
           </PageTransition>
         } />
+        <Route
+          path="projects/:id/apply"
+          element={
+            <PageTransition>
+              <ProjectApplyForm />
+            </PageTransition>
+          }
+        />
+
         <Route path="team" element={
           <PageTransition>
             <Team />

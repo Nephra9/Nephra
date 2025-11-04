@@ -175,7 +175,7 @@ const ProjectDetail = () => {
                             Ready to join this project? Submit your application to get started.
                           </p>
                           <Link to={`/projects/${project.id}/apply`}>
-                            <Button className="w-full">
+                            <Button className="w-full mt-5">
                               Apply Now
                             </Button>
                           </Link>

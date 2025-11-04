@@ -29,7 +29,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
     from: () => stubQuery(),
     auth: {
       getUser: async () => ({ data: { user: null }, error: null }),
-      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => { } } } }),
       signInWithPassword: makeFail('auth.signInWithPassword'),
       signUp: makeFail('auth.signUp'),
       signInWithOAuth: makeFail('auth.signInWithOAuth'),
@@ -58,6 +58,11 @@ export { supabase }
 
 // Database helper functions
 export const db = {
+
+
+
+
+
   // Users
   users: {
     async getProfile(userId) {
@@ -66,7 +71,7 @@ export const db = {
         .select('*')
         .eq('id', userId)
         .single()
-      
+
       if (error) throw error
       return data
     },
@@ -78,7 +83,7 @@ export const db = {
         .eq('id', userId)
         .select()
         .single()
-      
+
       if (error) throw error
       return data
     },
@@ -100,9 +105,9 @@ export const db = {
           query = query.or(`full_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`)
         }
 
-  const { data, error } = await query
-  // Log full response when debugging to help diagnose empty/partial results
-  console.debug('db.users.getAllUsers ->', { filters, data, count: Array.isArray(data) ? data.length : 0, error })
+        const { data, error } = await query
+        // Log full response when debugging to help diagnose empty/partial results
+        console.debug('db.users.getAllUsers ->', { filters, data, count: Array.isArray(data) ? data.length : 0, error })
         if (error) throw error
         return data
       } catch (err) {
@@ -119,7 +124,7 @@ export const db = {
         .eq('id', userId)
         .select()
         .single()
-      
+
       if (error) throw error
       return { success: true, data }
     },
@@ -129,7 +134,7 @@ export const db = {
         .from('users')
         .delete()
         .eq('id', userId)
-      
+
       if (error) throw error
       return { success: true }
     },
@@ -137,14 +142,14 @@ export const db = {
     async suspendUser(userId) {
       const { data, error } = await supabase
         .from('users')
-        .update({ 
+        .update({
           status: 'suspended',
           updated_at: new Date().toISOString()
         })
         .eq('id', userId)
         .select()
         .single()
-      
+
       if (error) throw error
       return { success: true, data }
     },
@@ -152,19 +157,41 @@ export const db = {
     async activateUser(userId) {
       const { data, error } = await supabase
         .from('users')
-        .update({ 
+        .update({
           status: 'active',
           updated_at: new Date().toISOString()
         })
         .eq('id', userId)
         .select()
         .single()
-      
+
       if (error) throw error
       return { success: true, data }
     }
   },
+  existing_project_requests: {
+    create: async (payload) => {
+      const { data, error } = await supabase
+        .from("existing_project_requests")
+        .insert(payload)
+        .select()
+        .single();
 
+      if (error) throw error;
+      return data;
+    },
+
+    getByUser: async (userId) => {
+      const { data, error } = await supabase
+        .from("existing_project_requests")
+        .select("*, project:projects(*)")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    }
+  },
   // Notifications helper (create/get/mark/delete)
   notifications: {
     async create({ user_id, title, message, type = 'info', action_url = null, metadata = {} }) {
@@ -236,41 +263,41 @@ export const db = {
           .select('*')
           .eq('published', true)
           .order('published_at', { ascending: false })
-        
+
         if (error) {
           console.error('Error fetching published projects with RLS:', error)
-          
+
           // If RLS fails, try without it (this requires service role key)
           console.log('Trying to fetch all projects without RLS...')
           const { data: allData, error: allError } = await supabase
             .from('projects')
             .select('*')
             .order('created_at', { ascending: false })
-          
+
           if (allError) {
             console.error('Error fetching all projects:', allError)
             return this.getFallbackProjects()
           }
-          
+
           // Filter published projects manually
           const publishedData = allData?.filter(project => project.published === true) || []
           console.log('Published projects fetched (fallback):', publishedData)
-          
+
           // If no projects found, return fallback data
           if (publishedData.length === 0) {
             return this.getFallbackProjects()
           }
-          
+
           return publishedData
         }
-        
+
         console.log('Published projects fetched:', data)
-        
+
         // If no projects found, return fallback data
         if (!data || data.length === 0) {
           return this.getFallbackProjects()
         }
-        
+
         return data
       } catch (err) {
         console.error('Unexpected error fetching projects:', err)
@@ -349,7 +376,7 @@ export const db = {
         .select('*')
         .eq('id', id)
         .single()
-      
+
       if (error) throw error
       return data
     },
@@ -360,7 +387,7 @@ export const db = {
         .insert(projectData)
         .select()
         .single()
-      
+
       if (error) {
         console.error('Error creating project:', error)
         return { success: false, error }
@@ -375,7 +402,7 @@ export const db = {
         .eq('id', id)
         .select()
         .single()
-      
+
       if (error) throw error
       return data
     },
@@ -385,7 +412,7 @@ export const db = {
         .from('projects')
         .delete()
         .eq('id', id)
-      
+
       if (error) throw error
     },
 
@@ -467,7 +494,6 @@ export const db = {
   projectRequests: {
     async getByUser(userId) {
       const { data, error } = await supabase
-        .from('project_requests')
         .select(`
           *,
           projects (
@@ -479,7 +505,7 @@ export const db = {
         `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
-      
+
       if (error) throw error
       return data
     },
@@ -506,7 +532,7 @@ export const db = {
         `)
         .eq('id', id)
         .single()
-      
+
       if (error) throw error
       return data
     },
@@ -517,7 +543,7 @@ export const db = {
         .insert(requestData)
         .select()
         .single()
-      
+
       if (error) throw error
       return data
     },
@@ -529,7 +555,7 @@ export const db = {
         .eq('id', id)
         .select()
         .single()
-      
+
       if (error) {
         console.error('Error updating project request:', error)
         return { success: false, error }
@@ -605,7 +631,7 @@ export const db = {
         .eq('id', id)
         .select()
         .single()
-      
+
       if (error) throw error
       return { success: true, data }
     },
@@ -615,7 +641,7 @@ export const db = {
         .from('project_requests')
         .delete()
         .eq('id', id)
-      
+
       if (error) throw error
       return { success: true }
     }
@@ -656,7 +682,7 @@ export const db = {
         .order('created_at', { ascending: false })
 
       if (filters.status) query = query.eq('status', filters.status)
-      if (filters.search) query = query.or(`subject.ilike.%${filters.search}%,message.ilike.%${filters.search}%`) 
+      if (filters.search) query = query.or(`subject.ilike.%${filters.search}%,message.ilike.%${filters.search}%`)
 
       const { data, error } = await query
       if (error) throw error
@@ -693,7 +719,7 @@ export const db = {
         .insert(logData)
         .select()
         .single()
-      
+
       if (error) throw error
       return data
     },
@@ -737,7 +763,7 @@ export const db = {
           upsert: false,
           ...options
         })
-      
+
       if (error) throw error
       return data
     },
@@ -746,7 +772,7 @@ export const db = {
       const { data } = supabase.storage
         .from(bucket)
         .getPublicUrl(path)
-      
+
       return data.publicUrl
     },
 
@@ -754,7 +780,7 @@ export const db = {
       const { error } = await supabase.storage
         .from(bucket)
         .remove([path])
-      
+
       if (error) throw error
     },
 
@@ -762,7 +788,7 @@ export const db = {
       const { data, error } = await supabase.storage
         .from(bucket)
         .createSignedUrl(path, expiresIn)
-      
+
       if (error) throw error
       return data.signedUrl
     }
@@ -813,7 +839,7 @@ export const db = {
         `)
         .order('created_at', { ascending: false })
         .limit(limit)
-      
+
       if (error) throw error
       return data
     }
@@ -830,7 +856,7 @@ export const auth = {
         data: userData
       }
     })
-    
+
     if (error) throw error
     return data
   },
@@ -840,7 +866,7 @@ export const auth = {
       email,
       password
     })
-    
+
     if (error) throw error
     return data
   },
@@ -852,7 +878,7 @@ export const auth = {
         redirectTo: `${window.location.origin}/auth/callback`
       }
     })
-    
+
     if (error) throw error
     return data
   },
@@ -866,7 +892,7 @@ export const auth = {
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth/reset-password`
     })
-    
+
     if (error) throw error
     return data
   },
@@ -875,7 +901,7 @@ export const auth = {
     const { data, error } = await supabase.auth.updateUser({
       password: newPassword
     })
-    
+
     if (error) throw error
     return data
   },
@@ -904,7 +930,7 @@ export const adminDb = {
         )
       `)
       .order('created_at', { ascending: false })
-    
+
     if (error) {
       console.error('Error fetching project requests:', error)
       throw error
@@ -935,7 +961,7 @@ export const adminDb = {
       .from('projects')
       .select('*')
       .order('created_at', { ascending: false })
-    
+
     if (error) {
       console.error('Error fetching projects:', error)
       throw error
@@ -956,7 +982,7 @@ export const adminDb = {
       .update(updateData)
       .eq('id', id)
       .select()
-    
+
     if (error) {
       console.error('Error updating project request:', error)
       throw error
@@ -1004,7 +1030,7 @@ export const adminDb = {
       .from('projects')
       .insert([projectPayload])
       .select()
-    
+
     if (error) {
       console.error('Error creating project:', error)
       throw error

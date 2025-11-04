@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState,useRef,useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -15,6 +15,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import Button from '../UI/Button'
 
+
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
@@ -22,6 +23,23 @@ const Header = () => {
   const { theme, toggleTheme } = useTheme()
   const location = useLocation()
   const navigate = useNavigate()
+const userMenuRef = useRef(null)
+useEffect(() => {
+  const handleClickOutside = (event) => {
+    if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+      setUserMenuOpen(false)
+    }
+  }
+
+  // Listen only when menu is open
+  if (userMenuOpen) {
+    document.addEventListener('mousedown', handleClickOutside)
+  }
+
+  return () => {
+    document.removeEventListener('mousedown', handleClickOutside)
+  }
+}, [userMenuOpen])
 
   const navigation = [
     { name: 'Home', href: '/' },
@@ -122,7 +140,7 @@ const Header = () => {
 
             {/* Auth Actions */}
             {isAuthenticated ? (
-              <div className="relative">
+              <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center space-x-2 p-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
