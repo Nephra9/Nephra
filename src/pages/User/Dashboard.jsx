@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { db } from '../../services/supabaseClient'
+import { supabase } from '../../services/supabaseClient'
 import Card from '../../components/UI/Card'
 import Button from '../../components/UI/Button'
 import { 
@@ -27,24 +27,56 @@ const UserDashboard = () => {
     })
   }, [isAuthenticated, loading, user, profile])
 
-  useEffect(() => {
-    const loadApplications = async () => {
-      if (!user?.id) return
-      
-      try {
-        setApplicationsLoading(true)
-        const data = await db.projectRequests.getByUser(user.id)
-        setApplications(data || [])
-      } catch (error) {
-        console.error('Error loading applications:', error)
-        setApplications([])
-      } finally {
-        setApplicationsLoading(false)
-      }
-    }
+useEffect(() => {
+  const loadApplications = async () => {
+    if (!user?.id) return;
 
-    loadApplications()
-  }, [user?.id])
+    try {
+      setApplicationsLoading(true);
+      console.log("User data:", user);
+
+      // Fetch from both tables in parallel using supabase (not db)
+      const [projectRequestsRes, existingRequestsRes] = await Promise.all([
+        supabase
+          .from('project_requests')
+          .select('id, status, project_id, created_at')
+          .eq('user_id', user.id),
+        supabase
+          .from('existing_project_requests')
+          .select('id, status, project_id, created_at')
+          .eq('user_id', user.id),
+      ]);
+
+      // Check for errors
+      if (projectRequestsRes.error) {
+        console.error('Error fetching project_requests:', projectRequestsRes.error);
+      }
+      if (existingRequestsRes.error) {
+        console.error('Error fetching existing_project_requests:', existingRequestsRes.error);
+      }
+
+      console.log("Fetched project_requests:", projectRequestsRes.data);
+      console.log("Fetched existing_project_requests:", existingRequestsRes.data);
+
+      // Combine data
+      const combinedData = [
+        ...(projectRequestsRes.data || []),
+        ...(existingRequestsRes.data || []),
+      ];
+
+      setApplications(combinedData);
+    } catch (error) {
+      console.error('Error loading applications:', error);
+      setApplications([]);
+    } finally {
+      setApplicationsLoading(false);
+    }
+  };
+
+  loadApplications();
+}, [user?.id]);
+
+
 
   if (loading) {
     return (

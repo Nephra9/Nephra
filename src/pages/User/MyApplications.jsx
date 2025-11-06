@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useAuth } from '../../context/AuthContext'
-import { db } from '../../services/supabaseClient'
+// import { db } from '../../services/supabaseClient'
+import { supabase } from '../../services/supabaseClient'
 import Card from '../../components/UI/Card'
 import Button from '../../components/UI/Button'
 import LoadingSpinner from '../../components/UI/LoadingSpinner'
@@ -25,18 +26,59 @@ const MyApplications = () => {
     }
   }, [user])
 
-  const loadApplications = async () => {
-    try {
-      setLoading(true)
-      const data = await db.projectRequests.getByUser(user.id)
-      setApplications(data || [])
-    } catch (error) {
-      console.error('Error loading applications:', error)
-      setApplications([])
-    } finally {
-      setLoading(false)
-    }
+const loadApplications = async () => {
+  try {
+    setLoading(true)
+
+    if (!user?.id) return
+
+    console.log("Fetching applications for:", user.id)
+
+    // Fetch from both tables
+    const [projectRequestsRes, existingRequestsRes] = await Promise.all([
+      supabase
+        .from('project_requests')
+        .select('id, status, proposal, expected_timeline, attachments, portfolio_links, skills_checklist, admin_notes, rejection_reason, revision_notes, created_at, updated_at, project:projects(id, title, summary)')
+        .eq('user_id', user.id),
+
+      supabase
+        .from('existing_project_requests')
+        .select('id, status, purpose, semester, created_at, updated_at, project:projects(id, title, summary)')
+        .eq('user_id', user.id),
+    ])
+
+    if (projectRequestsRes.error) console.error('Error fetching project_requests:', projectRequestsRes.error)
+    if (existingRequestsRes.error) console.error('Error fetching existing_project_requests:', existingRequestsRes.error)
+
+    // Normalize both tables to the same structure
+    const normalizeExistingRequests = (rows) => rows.map(req => ({
+      ...req,
+      proposal: req.purpose || 'Existing Project Request',
+      expected_timeline: req.semester || null,
+      attachments: [],
+      portfolio_links: [],
+      skills_checklist: [],
+      admin_notes: null,
+      rejection_reason: null,
+      revision_notes: null,
+    }))
+
+    // Merge data
+    const combinedData = [
+      ...(projectRequestsRes.data || []),
+      ...normalizeExistingRequests(existingRequestsRes.data || []),
+    ]
+
+    console.log("Combined applications:", combinedData)
+    setApplications(combinedData)
+  } catch (error) {
+    console.error('Error loading applications:', error)
+    setApplications([])
+  } finally {
+    setLoading(false)
   }
+}
+
 
   const getStatusIcon = (status) => {
     switch (status) {
