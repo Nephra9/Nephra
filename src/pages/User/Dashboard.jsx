@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import formatDate from '../../utils/formatDate'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
@@ -241,7 +242,7 @@ useEffect(() => {
                           {application.project?.title || 'Project Application'}
                         </h4>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Applied: {new Date(application.created_at).toLocaleDateString()}
+                          Applied: {formatDate(application.created_at)}
                         </p>
                       </div>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${

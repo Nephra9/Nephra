@@ -33,6 +33,9 @@ export const AuthProvider = ({ children }) => {
 
         if (user) {
           setUser(user)
+          // Do not write to the users table during init (may be blocked by RLS).
+          // Profile will be loaded from the `users` table; UI components should
+          // fall back to auth.user.last_sign_in_at when `users.last_login_at` is missing.
           await loadUserProfile(user.id)
         }
       } catch (error) {
@@ -52,6 +55,9 @@ export const AuthProvider = ({ children }) => {
         
         if (event === 'SIGNED_IN' && session?.user) {
           setUser(session.user)
+
+          // Do not attempt DB writes here (may be blocked by RLS). Load profile
+          // after a short delay to allow auth state to settle.
           setTimeout(async () => {
             await loadUserProfile(session.user.id)
           }, 1000)

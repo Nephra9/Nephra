@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import formatDate from '../../utils/formatDate'
 import { useAuth } from '../../context/AuthContext'
 // import { db } from '../../services/supabaseClient'
 import { supabase } from '../../services/supabaseClient'
@@ -236,7 +237,7 @@ const loadApplications = async () => {
                           <div className="space-y-2 text-sm">
                             <div className="flex items-center text-gray-600 dark:text-gray-400">
                               <CalendarIcon className="h-4 w-4 mr-2" />
-                              Applied: {new Date(application.created_at).toLocaleDateString()}
+                              Applied: {formatDate(application.created_at)}
                             </div>
                             {application.expected_timeline && (
                               <div className="text-gray-600 dark:text-gray-400">
@@ -340,7 +341,7 @@ const loadApplications = async () => {
                       {/* Actions */}
                       <div className="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700">
                         <div className="text-sm text-gray-500 dark:text-gray-400">
-                          Last updated: {new Date(application.updated_at).toLocaleDateString()}
+                          Last updated: {formatDate(application.updated_at)}
                         </div>
                         <div className="flex space-x-2">
                           {application.project && (

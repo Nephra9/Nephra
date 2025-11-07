@@ -110,8 +110,8 @@ const Topbar = ({ setSidebarOpen }) => {
   }
 
   return (
-    // Fixed below the header (header height is 64px), so topbar starts at top-16
-    <div className="fixed top-16 left-0 right-0 lg:left-64 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
+  // Stick below the header so it flows in document order and pages don't need large top padding
+  <div className="sticky top-16 left-0 right-0 lg:left-64 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
       {/* Mobile menu button */}
       <button
         type="button"
@@ -125,7 +125,7 @@ const Topbar = ({ setSidebarOpen }) => {
       {/* Separator */}
       {/* <div className="h-6 w-px bg-gray-200 dark:bg-gray-700 lg:hidden mb-5" aria-hidden="true" /> */}
 
-      <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6 mt-5" ref={containerRef}>
+  <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6" ref={containerRef}>
         {/* Search */}
         <div className="relative flex flex-1 items-center">
           <div className="relative w-full">

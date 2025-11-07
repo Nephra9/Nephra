@@ -1,5 +1,6 @@
 // src/components/Admin/AuditLogTimeline.jsx
 import React from 'react'
+import formatDate from '../../utils/formatDate'
 import { motion } from 'framer-motion'
 import { 
   CheckCircleIcon,
@@ -103,7 +104,7 @@ const AuditLogTimeline = ({ logs }) => {
                     <div className="flex items-center space-x-1">
                       <CalendarIcon className="h-4 w-4" />
                       <time dateTime={log.created_at}>
-                        {new Date(log.created_at).toLocaleDateString()}
+                        {formatDate(log.created_at)}
                       </time>
                     </div>
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium mt-1 ${getActionColor(log.action)}`}>

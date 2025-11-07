@@ -88,9 +88,9 @@ useEffect(() => {
   }
 
   return (
-    <header className="bg-white dark:bg-gray-800 shadow-soft sticky top-0 z-50">
-      <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" aria-label="Top">
-        <div className="flex w-full items-center justify-between py-4">
+    <header className="bg-white dark:bg-gray-800 shadow-soft sticky top-0 z-50 h-16">
+      <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-full" aria-label="Top">
+        <div className="flex w-full items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
