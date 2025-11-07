@@ -82,29 +82,29 @@ const AdminDashboard = () => {
         console.log('Published projects count:', publishedCount)
       }
 
-      // Load pending applications count
-      const { count: pendingCount, error: pendingError } = await supabase
-        .from('project_requests')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'Pending')
+      // Load pending/approved counts from both project_requests and existing_project_requests
+      const [prPendingRes, prApprovedRes, eprPendingRes, eprApprovedRes] = await Promise.all([
+        supabase.from('project_requests').select('*', { count: 'exact', head: true }).eq('status', 'Pending'),
+        supabase.from('project_requests').select('*', { count: 'exact', head: true }).eq('status', 'Approved'),
+        supabase.from('existing_project_requests').select('*', { count: 'exact', head: true }).eq('status', 'Pending'),
+        supabase.from('existing_project_requests').select('*', { count: 'exact', head: true }).eq('status', 'Approved')
+      ])
 
-      if (pendingError) {
-        console.error('Pending count error:', pendingError)
-      } else {
-        console.log('Pending applications count:', pendingCount)
-      }
+      const prPendingCount = prPendingRes?.count || 0
+      const prApprovedCount = prApprovedRes?.count || 0
+      const eprPendingCount = eprPendingRes?.count || 0
+      const eprApprovedCount = eprApprovedRes?.count || 0
 
-      // Load approved applications count
-      const { count: approvedCount, error: approvedError } = await supabase
-        .from('project_requests')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'Approved')
+      if (prPendingRes?.error) console.error('project_requests pending count error:', prPendingRes.error)
+      if (prApprovedRes?.error) console.error('project_requests approved count error:', prApprovedRes.error)
+      if (eprPendingRes?.error) console.error('existing_project_requests pending count error:', eprPendingRes.error)
+      if (eprApprovedRes?.error) console.error('existing_project_requests approved count error:', eprApprovedRes.error)
 
-      if (approvedError) {
-        console.error('Approved count error:', approvedError)
-      } else {
-        console.log('Approved applications count:', approvedCount)
-      }
+      const pendingCount = (prPendingCount || 0) + (eprPendingCount || 0)
+      const approvedCount = (prApprovedCount || 0) + (eprApprovedCount || 0)
+
+      console.log('Pending applications count (both tables):', pendingCount)
+      console.log('Approved applications count (both tables):', approvedCount)
 
       // Load recent projects
       const { data: recentProjects, error: recentError } = await supabase

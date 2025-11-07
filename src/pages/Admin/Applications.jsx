@@ -48,7 +48,7 @@ const AdminApplications = () => {
     if (!selected) return
     try {
       setProcessing(true)
-      await approveRequest(selected.id, adminNotes)
+      await approveRequest(selected.id, adminNotes, selected._source || 'project_requests')
       toast.success('Application approved')
       await fetchRequests()
       close()
@@ -69,7 +69,7 @@ const AdminApplications = () => {
 
     try {
       setProcessing(true)
-      await rejectRequest(selected.id, rejectionReason)
+      await rejectRequest(selected.id, rejectionReason, selected._source || 'project_requests')
       toast.success('Application rejected')
       await fetchRequests()
       close()
@@ -204,7 +204,7 @@ const AdminApplications = () => {
             {config && config.debug && (
               <Card className="mt-4">
                 <Card.Content className="p-4">
-                  <strong>DEBUG: project_requests (requests)</strong>
+                  <strong>DEBUG: requests (project_requests + existing_project_requests)</strong>
                   <pre className="text-xs overflow-auto max-h-48 mt-2">{JSON.stringify(requests, null, 2)}</pre>
                 </Card.Content>
               </Card>
