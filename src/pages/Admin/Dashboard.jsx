@@ -1,5 +1,6 @@
 // pages/Admin/Dashboard.jsx - FULLY UPDATED
 import React, { useState, useEffect } from 'react'
+import formatDate from '../../utils/formatDate'
 import { motion } from 'framer-motion'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../services/supabaseClient'
@@ -258,8 +259,8 @@ const AdminDashboard = () => {
               <p className="text-sm font-medium text-gray-900 dark:text-white">
                 {log.users?.full_name || 'System'} • {log.action}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {log.object_type} • {new Date(log.created_at).toLocaleString()}
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                {log.object_type} • {formatDate(log.created_at)} {new Date(log.created_at).toLocaleTimeString()}
               </p>
             </div>
           </div>
@@ -433,7 +434,7 @@ const AdminDashboard = () => {
                                 {project.title}
                               </p>
                               <p className="text-xs text-gray-500 dark:text-gray-400">
-                                {new Date(project.created_at).toLocaleDateString()}
+                                {formatDate(project.created_at)}
                               </p>
                             </div>
                           </div>

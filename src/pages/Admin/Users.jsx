@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import formatDate from '../../utils/formatDate'
 import { motion } from 'framer-motion'
 import { useAuth } from '../../context/AuthContext'
 import { db, adminDb } from '../../services/supabaseClient'
@@ -222,13 +223,15 @@ const AdminUsers = () => {
                             </div>
                             <div className="flex items-center">
                               <CalendarIcon className="h-4 w-4 mr-1" />
-                              Joined: {new Date(user.created_at).toLocaleDateString()}
+                              Joined: {formatDate(user.created_at)}
                             </div>
                           </div>
 
                           <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
                             <span>Role: {user.role || 'user'}</span>
-                            <span>Last login: {user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : 'Never'}</span>
+                            <span>
+                              Last login: {user.last_login_at ? formatDate(user.last_login_at) : (user.last_sign_in_at ? formatDate(user.last_sign_in_at) : 'Never')}
+                            </span>
                           </div>
                         </div>
 

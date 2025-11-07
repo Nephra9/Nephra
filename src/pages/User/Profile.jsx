@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import formatDate from '../../utils/formatDate'
 import { motion } from 'framer-motion'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../services/supabaseClient'
@@ -529,13 +530,13 @@ const UserProfile = () => {
                       <div>
                         <p className="text-gray-500 dark:text-gray-400">Member since</p>
                         <p className="text-gray-900 dark:text-white font-medium">
-                          {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'N/A'}
+                          {profile?.created_at ? formatDate(profile.created_at) : 'N/A'}
                         </p>
                       </div>
                       <div>
                         <p className="text-gray-500 dark:text-gray-400">Last login</p>
                         <p className="text-gray-900 dark:text-white font-medium">
-                          {profile?.last_login_at ? new Date(profile.last_login_at).toLocaleDateString() : 'N/A'}
+                          {profile?.last_login_at ? formatDate(profile.last_login_at) : (profile?.last_sign_in_at ? formatDate(profile.last_sign_in_at) : 'N/A')}
                         </p>
                       </div>
                     </div>

@@ -9,6 +9,7 @@ import {
   CheckCircleIcon,
   XCircleIcon
 } from '@heroicons/react/24/outline'
+import formatDate from '../../utils/formatDate'
 
 const ProjectsList = ({ projects, onEditProject, onDeleteProject }) => {
   const [selectedProjects, setSelectedProjects] = useState([])
@@ -148,7 +149,7 @@ const ProjectsList = ({ projects, onEditProject, onDeleteProject }) => {
                   {getStatusBadge(project)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                  {new Date(project.created_at).toLocaleDateString()}
+                  {formatDate(project.created_at)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex justify-end space-x-2">
