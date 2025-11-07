@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { useUsers } from '../../hooks/useUsers'
 import Button from '../UI/Button'
 import Modal from '../UI/Modal'
+import formatDate from '../../utils/formatDate'
 import { 
   UserIcon,
   EnvelopeIcon,
@@ -118,7 +119,7 @@ const UsersList = () => {
                       </div>
                       <div className="flex items-center">
                         <CalendarIcon className="h-4 w-4 mr-1" />
-                        Joined: {new Date(user.created_at).toLocaleDateString()}
+                        Joined: {formatDate(user.created_at)}
                       </div>
                     </div>
                     <div className="flex items-center space-x-2 mt-2">

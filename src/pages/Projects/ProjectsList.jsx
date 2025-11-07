@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import formatDate from '../../utils/formatDate'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { 
@@ -165,7 +166,7 @@ const ProjectsList = () => {
                         </span>
                         <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                           <CalendarIcon className="h-4 w-4 mr-1" />
-                          {new Date(project.published_at).toLocaleDateString()}
+                          {formatDate(project.published_at)}
                         </div>
                       </div>
 

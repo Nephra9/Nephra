@@ -196,7 +196,7 @@ const Contact = () => {
                                       <div>
                                         <div className="flex items-center justify-between">
                                           <h4 className="font-medium text-gray-900 dark:text-white">{m.subject || 'No subject'}</h4>
-                                          <div className="text-xs text-gray-500">{m.created_at ? new Date(m.created_at).toLocaleString() : ''}</div>
+                                    <div className="text-xs text-gray-500">{m.created_at ? `${formatDate(m.created_at)} ${new Date(m.created_at).toLocaleTimeString()}` : ''}</div>
                                         </div>
                                         <p className="mt-2 text-gray-700 dark:text-gray-300 whitespace-pre-line">{m.message}</p>
 
@@ -207,7 +207,7 @@ const Contact = () => {
                                               {m.contact_replies.map(r => (
                                                 <div key={r.id} className="p-2 bg-gray-50 dark:bg-gray-800 rounded">
                                                   <div className="text-sm text-gray-900 dark:text-white">{r.message}</div>
-                                                  <div className="text-xs text-gray-500">{r.created_at ? new Date(r.created_at).toLocaleString() : ''}</div>
+                                                  <div className="text-xs text-gray-500">{r.created_at ? `${formatDate(r.created_at)} ${new Date(r.created_at).toLocaleTimeString()}` : ''}</div>
                                                 </div>
                                               ))}
                                             </div>

@@ -1,5 +1,6 @@
 // src/pages/Admin/ProjectManagement.jsx - FULLY UPDATED
 import React, { useState, useEffect } from 'react'
+import formatDate from '../../utils/formatDate'
 import { motion } from 'framer-motion'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../services/supabaseClient'
@@ -380,7 +381,7 @@ const ProjectManagement = () => {
                                 </div>
                                 <div className="flex items-center">
                                   <CalendarIcon className="h-4 w-4 mr-1" />
-                                  {new Date(application.created_at).toLocaleDateString()}
+                                  {formatDate(application.created_at)}
                                 </div>
                               </div>
                             </div>
@@ -441,7 +442,7 @@ const ProjectManagement = () => {
                           {/* Actions */}
                           <div className="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700">
                             <div className="text-sm text-gray-500 dark:text-gray-400">
-                              Submitted: {new Date(application.created_at).toLocaleDateString()}
+                              Submitted: {formatDate(application.created_at)}
                             </div>
                             <div className="flex space-x-2">
                               {application.status === 'Pending' && (
@@ -523,7 +524,7 @@ const ProjectManagement = () => {
                               }`}>
                                 {project.published ? 'Published' : 'Draft'}
                               </span>
-                              <span>Created: {new Date(project.created_at).toLocaleDateString()}</span>
+                              <span>Created: {formatDate(project.created_at)}</span>
                             </div>
                           </div>
                           <div className="flex space-x-2">

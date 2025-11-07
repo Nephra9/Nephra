@@ -1,5 +1,6 @@
 // src/pages/Admin/Projects.jsx
 import React, { useState, useEffect } from 'react'
+import formatDate from '../../utils/formatDate'
 import { motion } from 'framer-motion'
 import { useAuth } from '../../context/AuthContext'
 import { useProjects } from '../../hooks/useProjects'
@@ -75,7 +76,7 @@ const ProjectsList = ({ projects, onEditProject, deleteProject }) => {
                         {project.published ? 'Published' : 'Draft'}
                       </span>
                       <span className="text-xs text-gray-500 dark:text-gray-400">
-                        Created: {new Date(project.created_at).toLocaleDateString()}
+                        Created: {formatDate(project.created_at)}
                       </span>
                     </div>
                   </div>
