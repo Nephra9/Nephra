@@ -96,13 +96,13 @@ useEffect(() => {
             <Link to="/" className="flex items-center space-x-2">
               <div className="h-8 w-8 rounded-lg overflow-hidden flex items-center justify-center bg-gray-200">
                 <img
-                  src="/Nephra.png"
+                  src="/C-ON.png"
                   alt="Logo"
                   className="h-full w-full object-cover"
                 />
               </div>
               <span className="text-xl font-bold text-gray-900 dark:text-white">
-                Nephra
+                C-ON
               </span>
             </Link>
           </div>

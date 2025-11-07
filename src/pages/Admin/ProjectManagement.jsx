@@ -41,8 +41,8 @@ const ProjectManagement = () => {
     try {
       setLoading(true)
       console.log('Loading project management data...')
-      
-      // Load project requests - FIXED QUERY
+
+      // Load project requests
       const { data: applicationsData, error: applicationsError } = await supabase
         .from('project_requests')
         .select(`
@@ -60,7 +60,6 @@ const ProjectManagement = () => {
         `)
         .order('created_at', { ascending: false })
 
-
       if (applicationsError) {
         console.error('Applications error:', applicationsError)
         throw applicationsError
@@ -68,7 +67,20 @@ const ProjectManagement = () => {
 
       console.log('Applications data:', applicationsData)
 
-      // Load projects - FIXED QUERY
+      // Load existing project requests (don't select users relation to avoid FK alias issues)
+      const { data: existingData, error: existingError } = await supabase
+        .from('existing_project_requests')
+        .select('*, projects (id, title, summary)')
+        .order('created_at', { ascending: false })
+
+      if (existingError) {
+        console.error('Existing requests error:', existingError)
+        throw existingError
+      }
+
+      console.log('Existing requests data:', existingData)
+
+      // Load projects
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select('*')
@@ -81,7 +93,27 @@ const ProjectManagement = () => {
 
       console.log('Projects data:', projectsData)
 
-      setApplications(applicationsData || [])
+      // Normalize by adding a _source field so UI/actions can handle both tables
+      const pr = (applicationsData || []).map(r => ({ ...r, _source: 'project_requests' }))
+      const epr = (existingData || []).map(r => ({ ...r, _source: 'existing_project_requests' }))
+
+      let merged = [...pr, ...epr].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+
+      // Fetch users for any rows missing a users object
+      const missingUserIds = Array.from(new Set(merged.filter(m => !m.users && m.user_id).map(m => m.user_id)))
+      if (missingUserIds.length > 0) {
+        const { data: usersData, error: usersError } = await supabase
+          .from('users')
+          .select('id, full_name, email')
+          .in('id', missingUserIds)
+
+        if (!usersError && Array.isArray(usersData)) {
+          const usersMap = usersData.reduce((acc, u) => { acc[u.id] = u; return acc }, {})
+          merged = merged.map(row => ({ ...row, users: row.users || usersMap[row.user_id] || null }))
+        }
+      }
+
+      setApplications(merged)
       setProjects(projectsData || [])
     } catch (error) {
       console.error('Error loading data:', error)
@@ -96,22 +128,25 @@ const ProjectManagement = () => {
   const handleApplicationAction = async (applicationId, action) => {
     try {
       setActionLoading(true)
-      
+      const application = applications.find(a => a.id === applicationId)
+      if (!application) throw new Error('Application not found')
+
+      const source = application._source || 'project_requests'
+
       const updateData = {
         status: action,
         updated_at: new Date().toISOString()
       }
 
       if (action === 'Approved') {
-        updateData.admin_notes = adminNotes
-        // Create project from approved application
-        await createProjectFromApplication(applicationId)
+        updateData.admin_notes = adminNotes || application.admin_notes || ''
+        // NOTE: approval no longer creates a new project. We only update the request status.
       } else if (action === 'Rejected') {
-        updateData.rejection_reason = rejectionReason
+        updateData.rejection_reason = rejectionReason || application.rejection_reason || ''
       }
 
       const { error } = await supabase
-        .from('project_requests')
+        .from(source)
         .update(updateData)
         .eq('id', applicationId)
 
@@ -131,39 +166,20 @@ const ProjectManagement = () => {
     }
   }
 
-  const createProjectFromApplication = async (applicationId) => {
-    try {
-      const application = applications.find(app => app.id === applicationId)
-      if (!application) throw new Error('Application not found')
-
-      // Extract project data from application
-      const projectData = {
-        title: application.projects?.title || `Project from Application ${applicationId}`,
-        summary: application.projects?.summary || application.proposal?.substring(0, 200) || 'Project summary',
-        description: application.proposal || 'Project description',
-        published: true,
-        created_by: application.user_id
-      }
-
-      const { error } = await supabase
-        .from('projects')
-        .insert([projectData])
-
-      if (error) throw error
-
-      toast.success('Project created successfully from application')
-    } catch (error) {
-      console.error('Error creating project:', error)
-      throw error
-    }
-  }
+  // Previously the admin approval flow created a project from an application.
+  // This has been intentionally removed: approving a request now only updates its status and admin notes.
 
   const deleteApplication = async (applicationId) => {
     if (!window.confirm('Are you sure you want to delete this application?')) return
 
     try {
+      const application = applications.find(a => a.id === applicationId)
+      if (!application) throw new Error('Application not found')
+
+      const source = application._source || 'project_requests'
+
       const { error } = await supabase
-        .from('project_requests')
+        .from(source)
         .delete()
         .eq('id', applicationId)
 
@@ -349,8 +365,8 @@ const ProjectManagement = () => {
                             <div className="flex-1">
                               <div className="flex items-center space-x-3 mb-2">
                                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                                  {application.projects?.title || 'Project Application'}
-                                </h3>
+                                    {application.projects?.title || application.purpose || application.proposal || 'Project Application'}
+                                  </h3>
                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(application.status)}`}>
                                   {getStatusIcon(application.status)}
                                   <span className="ml-1">{application.status}</span>
@@ -376,7 +392,7 @@ const ProjectManagement = () => {
                                 Proposal Summary
                               </h4>
                               <p className="text-sm text-gray-600 dark:text-gray-400">
-                                {application.proposal?.substring(0, 200)}...
+                                {(application.proposal || application.purpose || '').substring(0, 200)}{(application.proposal || application.purpose || '').length > 200 ? '...' : ''}
                               </p>
                             </div>
 
@@ -390,6 +406,9 @@ const ProjectManagement = () => {
                                 )}
                                 {application.expected_timeline && (
                                   <div>Timeline: {application.expected_timeline}</div>
+                                )}
+                                {application.semester && (
+                                  <div>Semester: {application.semester}</div>
                                 )}
                               </div>
                             </div>
