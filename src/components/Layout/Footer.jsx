@@ -84,7 +84,8 @@ const Footer = () => {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
           {/* Company Info */}
           <div className="lg:col-span-1">
-            <div className="flex items-center space-x-2 mb-4">
+           <span className="text-white  text-lg">Made By</span>
+            <div className="flex items-center space-x-2 mb-4 mt-2">
               <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center">
                 <span className="text-white font-bold text-lg">N</span>
               </div>

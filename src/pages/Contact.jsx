@@ -140,7 +140,7 @@ const Contact = () => {
   style={{ height: 550, width: 450 }}
 />
  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-              Doubts?...We'll Clarify..
+              Our support team is always first in line — quick replies, real solutions
             </h2>
 </motion.div>
             {/* Contact Form */}
