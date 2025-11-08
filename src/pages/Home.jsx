@@ -9,32 +9,33 @@ import {
   ChartBarIcon,
   RocketLaunchIcon,
   StarIcon,
-  CheckCircleIcon
+  CheckCircleIcon,ClockIcon,AdjustmentsHorizontalIcon,BanknotesIcon
 } from '@heroicons/react/24/outline'
 import Button from '../components/UI/Button'
 import Card from '../components/UI/Card'
+
 
 const Home = () => {
   const features = [
     {
       icon: AcademicCapIcon,
-      title: 'Academic Excellence',
-      description: 'Work with leading researchers and industry experts on cutting-edge projects.'
+      title: 'Student-Friendly & Motivational',
+      description: 'Get better grades and confidence with every submission.Our well-structured projects help you explain concepts clearly and shine in your project evaluations'
     },
     {
-      icon: CodeBracketIcon,
-      title: 'Hands-on Learning',
-      description: 'Gain practical experience with real-world applications and modern technologies.'
+      icon: ClockIcon,
+      title: 'Fast & On-Time Delivery Of Projects',
+      description: 'We understand deadlines. That’s why your project is delivered quickly — without compromising quality or creativity.'
     },
     {
-      icon: UserGroupIcon,
-      title: 'Collaborative Environment',
-      description: 'Join a community of passionate students and mentors working together.'
+      icon: AdjustmentsHorizontalIcon,
+      title: 'Ready-Made & Custom Projects',
+      description: 'Browse a curated list of completed projects or order one built exactly for your idea.C-On delivers both — quick and tailored.'
     },
     {
-      icon: ChartBarIcon,
-      title: 'Career Development',
-      description: 'Build your portfolio and develop skills that employers are looking for.'
+      icon: BanknotesIcon,
+      title: 'Affordable & Budget-Friendly',
+      description: 'High-quality academic projects shouldn’t break your budget. We offer transparent pricing made for students.'
     }
   ]
 
@@ -97,12 +98,20 @@ const Home = () => {
             className="text-center"
           >
             <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
-              Empower Your{' '}
-              <span className="gradient-text">Technology Journey</span>
+              Your One-Stop {' '}
+              <span className="gradient-text">Project Destination</span>
             </h1>
-            <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+               {/* <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+Ready projects or custom builds — all under one roof
+            </p> */}
+            {/* <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
               Join Nephra's innovative platform where students collaborate on cutting-edge research projects, 
               gain hands-on experience, and build the skills needed for tomorrow's technology careers.
+            </p> */}
+                <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+             At C-On, we make project building easy for students. Explore ready-to-use projects or get one 
+             custom-made in trending domains like <b>AI/ML</b> ,<b>Web Development</b> , and <b>Automation</b> . Save time, skip the 
+             stress, and submit projects that truly stand out.
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
               <Link to="/auth/signup">
@@ -120,7 +129,7 @@ const Home = () => {
           </motion.div>
 
           {/* Stats */}
-          <motion.div
+          {/* <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
@@ -136,7 +145,7 @@ const Home = () => {
                 </div>
               </div>
             ))}
-          </motion.div>
+          </motion.div> */}
         </div>
       </section>
 
@@ -151,10 +160,10 @@ const Home = () => {
             className="text-center mb-16"
           >
             <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-              Why Choose Nephra?
+              Why Choose C-ON?
             </h2>
             <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
-              We provide the tools, mentorship, and opportunities you need to succeed in technology.
+             We make academic projects smarter, faster, and more impactful — here’s why students love C-On.
             </p>
           </motion.div>
 
