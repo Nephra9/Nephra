@@ -44,6 +44,7 @@ import AdminSettings from './pages/Admin/Settings'
 import ProjectManagement from './pages/Admin/ProjectManagement'
 import AdminAuditLogs from './pages/Admin/AuditLogs'
 import AdminNotifications from './pages/Admin/Notifications'
+import AdminDataMigration from './pages/Admin/DataMigration'
 
 // Error Pages
 import NotFound from './pages/NotFound'
@@ -317,6 +318,11 @@ function App() {
         <Route path="notifications" element={
           <PageTransition>
             <AdminNotifications />
+          </PageTransition>
+        } />
+        <Route path="data-migration" element={
+          <PageTransition>
+            <AdminDataMigration />
           </PageTransition>
         } />
       </Route>
