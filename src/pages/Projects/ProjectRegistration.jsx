@@ -52,10 +52,11 @@ const ProjectRegistration = () => {
           ? [teamMembers[0]] 
           : []
 
-      // Prepare the project request data
+      // Prepare the project request data (do NOT create a projects row here - admin will manage projects)
       const requestPayload = {
         user_id: user.id,
         project_id: null,
+        title: data.title,
         proposal: `Title: ${data.title}\n\nSummary: ${data.summary}\n\nDescription: ${data.description}\n\nRequirements: ${data.requirements}\n\nExpected Outcomes: ${data.outcomes}`,
         expected_timeline: data.timeline,
         attachments: [

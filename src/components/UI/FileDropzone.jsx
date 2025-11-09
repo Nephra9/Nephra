@@ -2,14 +2,23 @@
 import React, { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { supabase } from '../../services/supabaseClient'
+import toast from 'react-hot-toast'
+import { useAuth } from '../../context/AuthContext'
 import { STORAGE_BUCKETS, ALLOWED_IMAGE_TYPES, MAX_FILE_SIZE } from '../../utils/constants'
 
 const FileDropzone = ({ onUploadComplete, multiple = false, bucket = STORAGE_BUCKETS.PROJECT_IMAGES }) => {
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState(0)
 
+  const { user } = useAuth()
+
   const onDrop = useCallback(async (acceptedFiles) => {
     if (!acceptedFiles.length) return
+    // require authenticated user for uploads (server policies may enforce this)
+    if (!user) {
+      toast.error('You must be signed in to upload files')
+      return
+    }
 
     setUploading(true)
     setProgress(0)
@@ -27,7 +36,7 @@ const FileDropzone = ({ onUploadComplete, multiple = false, bucket = STORAGE_BUC
             upsert: false
           })
 
-        if (uploadError) throw uploadError
+  if (uploadError) throw uploadError
 
         const { data: { publicUrl } } = supabase.storage
           .from(bucket)
@@ -46,6 +55,9 @@ const FileDropzone = ({ onUploadComplete, multiple = false, bucket = STORAGE_BUC
       onUploadComplete(multiple ? results : results[0])
     } catch (error) {
       console.error('Error uploading file:', error)
+      // Surface server error to user when possible
+      const msg = error?.message || error?.error || String(error)
+      toast.error(`Upload failed: ${msg}`)
     } finally {
       setUploading(false)
       setProgress(0)

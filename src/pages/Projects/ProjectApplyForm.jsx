@@ -1,21 +1,27 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { useParams } from 'react-router-dom'
 import { useAuth } from "../../context/AuthContext";
 import { db, supabase } from "../../services/supabaseClient";
 import Card from "../../components/UI/Card";
 import Button from "../../components/UI/Button";
+import toast from 'react-hot-toast'
 
 const ProjectApplyForm = ({ projectId }) => {
   const { user } = useAuth();
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const params = useParams()
+  // prefer the prop, otherwise the route param (/:id/apply)
+  const effectiveProjectId = projectId || params?.id || null
   const [form, setForm] = useState({
     institution: "",
     degree: "",
     department: "",
     phone: "",
     country: "",
+    title: "",
     purpose: "",
     reason: "",
     semester: "",
@@ -58,11 +64,39 @@ const ProjectApplyForm = ({ projectId }) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  // If a projectId is provided, fetch project details so admin UI can resolve title from the projects relation
+  const [projectDetails, setProjectDetails] = useState(null)
+  useEffect(() => {
+    const loadProject = async () => {
+      if (!effectiveProjectId) return
+      try {
+        const { data, error } = await supabase
+          .from('projects')
+          .select('id, title')
+          .eq('id', effectiveProjectId)
+          .single()
+        if (!error && data) setProjectDetails(data)
+        else setProjectDetails(null)
+      } catch (e) {
+        console.error('Failed to load project details', e)
+        setProjectDetails(null)
+      }
+    }
+
+    loadProject()
+  }, [effectiveProjectId])
+
+  // When project details load, populate the form title so UI shows the project name
+  useEffect(() => {
+    if (projectDetails && projectDetails.title) {
+      setForm(prev => ({ ...prev, title: projectDetails.title }))
+    }
+  }, [projectDetails])
+
   // Save missing details + apply for project
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-alert("hello");
     try {
       // Update missing user information
       const updatePayload = {};
@@ -76,13 +110,54 @@ alert("hello");
       }
 console.log("user id is "+user.id);
       // Submit project application
-   await db.existing_project_requests.create({
-  user_id: user.id,
-  project_id: projectId,
-  purpose: form.purpose,
-  semester: form.semester,
-  status: "Pending",
-});
+      // If applying to an existing project (effectiveProjectId present) -> insert into existing_project_requests
+      // If applying without a project id -> create a project_request (users submit proposals, admins create projects)
+      if (effectiveProjectId) {
+        if (!projectDetails) {
+          toast.error('Project not found or unavailable. Please try again later.')
+          setSaving(false)
+          return
+        }
+
+        const payload = {
+          user_id: user.id,
+          project_id: effectiveProjectId,
+          title: projectDetails.title || form.title || null,
+          purpose: form.purpose,
+          semester: form.semester,
+          status: 'Pending'
+        }
+
+        await db.existing_project_requests.create(payload)
+      } else {
+        // No project id: treat this as a new project proposal -> insert into project_requests
+        const payload = {
+          user_id: user.id,
+          project_id: null,
+          proposal: form.purpose || '',
+          expected_timeline: form.semester || null,
+          attachments: [
+            {
+              type: 'apply_form',
+              data: {
+                title: form.title || null,
+                purpose: form.purpose || '',
+                submitted_at: new Date().toISOString()
+              }
+            }
+          ],
+          portfolio_links: [],
+          skills_checklist: [],
+          status: 'Pending',
+          assigned_reviewers: [],
+          admin_notes: null,
+          rejection_reason: null,
+          revision_notes: null,
+          title: form.title || null
+        }
+
+        await db.project_requests.create(payload)
+      }
 
 
       alert("Application Submitted Successfully!");
@@ -114,6 +189,13 @@ console.log("user id is "+user.id);
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
             Apply for Project
           </h1>
+
+          {/* Project title bar (when applying to an existing project) */}
+          {effectiveProjectId && projectDetails && (
+            <div className="mb-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{projectDetails.title}</h2>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
 

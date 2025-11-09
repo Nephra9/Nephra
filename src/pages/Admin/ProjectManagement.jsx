@@ -30,6 +30,8 @@ const ProjectManagement = () => {
   const [showModal, setShowModal] = useState(false)
   const [adminNotes, setAdminNotes] = useState('')
   const [rejectionReason, setRejectionReason] = useState('')
+  const [progressValue, setProgressValue] = useState(1)
+  const [progressNote, setProgressNote] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
 
   useEffect(() => {
@@ -133,6 +135,40 @@ const ProjectManagement = () => {
       if (!application) throw new Error('Application not found')
 
       const source = application._source || 'project_requests'
+      // Special handling for progress updates
+      if (action === 'Progress') {
+        // Build progress notes array by appending a new entry
+        const existingNotes = Array.isArray(application.progress_notes) ? application.progress_notes : (application.progress_notes ? application.progress_notes : [])
+        const newNote = {
+          note: progressNote || '',
+          author: profile?.full_name || profile?.email || user?.email || 'admin',
+          at: new Date().toISOString(),
+          // store the human-friendly percentage in the note
+          value: progressValue
+        }
+
+        const updatedNotes = [...existingNotes, newNote]
+
+        // Save progress_project consistently as a fraction (0-1) to avoid
+        // ambiguity between 1 meaning 1% vs 100%.
+        const storedProgress = (typeof progressValue === 'number') ? (Math.min(Math.max(progressValue, 0), 100) / 100) : 0
+
+        const { error } = await supabase
+          .from(source)
+          .update({ progress_project: storedProgress, progress_notes: updatedNotes, updated_at: new Date().toISOString() })
+          .eq('id', applicationId)
+
+        if (error) throw error
+
+        toast.success('Progress updated')
+        setShowModal(false)
+        setSelectedApplication(null)
+        setProgressNote('')
+        // reset to 1% default
+        setProgressValue(1)
+        loadData()
+        return
+      }
 
       const updateData = {
         status: action,
@@ -143,7 +179,15 @@ const ProjectManagement = () => {
         updateData.admin_notes = adminNotes || application.admin_notes || ''
         // NOTE: approval no longer creates a new project. We only update the request status.
       } else if (action === 'Rejected') {
-        updateData.rejection_reason = rejectionReason || application.rejection_reason || ''
+        // existing_project_requests doesn't have a dedicated rejection_reason column.
+        if (source === 'existing_project_requests') {
+          // append rejection info to admin_notes
+          const existingAdminNotes = application.admin_notes || ''
+          const appended = `${existingAdminNotes}${existingAdminNotes ? '\n\n' : ''}REJECTION: ${rejectionReason || ''} (by ${profile?.full_name || profile?.email || user?.email || 'admin'} on ${new Date().toISOString()})`
+          updateData.admin_notes = appended
+        } else {
+          updateData.rejection_reason = rejectionReason || application.rejection_reason || ''
+        }
       }
 
       const { error } = await supabase
@@ -196,6 +240,22 @@ const ProjectManagement = () => {
 
   const openModal = (application, action) => {
     setSelectedApplication({ ...application, action })
+    // Pre-fill modal fields depending on action
+    if (action === 'Approved') {
+      setAdminNotes(application.admin_notes || '')
+    } else if (action === 'Rejected') {
+      setRejectionReason('')
+    } else if (action === 'Progress') {
+      const raw = application.progress_project ?? null
+      // If raw === 1 but there are no progress notes, treat this as the
+      // legacy "default/empty" marker and show 1% instead of 100%.
+      const isLegacyEmptyOne = raw === 1 && (!application.progress_notes || application.progress_notes.length === 0)
+      const pct = (raw === null || raw === undefined || isLegacyEmptyOne)
+        ? 1 // default to 1% when no value or legacy empty marker
+        : (raw > 1 ? Math.round(raw) : Math.round(raw * 100))
+      setProgressValue(pct)
+      setProgressNote('')
+    }
     setShowModal(true)
   }
 
@@ -221,6 +281,50 @@ const ProjectManagement = () => {
       default:
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
     }
+  }
+
+  const getProgressPercent = (application) => {
+    const raw = application.progress_project ?? null
+    const isLegacyEmptyOne = raw === 1 && (!application.progress_notes || application.progress_notes.length === 0)
+    const pct = (raw === null || raw === undefined || isLegacyEmptyOne)
+      ? 1
+      : (raw > 1 ? Math.round(raw) : Math.round(raw * 100))
+    return Math.min(Math.max(pct, 1), 100)
+  }
+
+  const getApplicationTitle = (application) => {
+    // Prefer explicit title column
+    if (application.title && String(application.title).trim()) return String(application.title).trim()
+
+    // Try attachments -> data.title (attachments may be stored as stringified JSON)
+    try {
+      let attachments = application.attachments
+      if (typeof attachments === 'string') {
+        attachments = JSON.parse(attachments)
+      }
+      if (Array.isArray(attachments) && attachments[0]?.data?.title) {
+        return String(attachments[0].data.title).trim()
+      }
+    } catch (e) {
+      // ignore parse errors
+    }
+
+    // Project relation title or lookup from projects list
+    if (application.projects?.title) return application.projects.title
+    const linked = projects.find(p => p.id === application.project_id)
+    if (linked && linked.title) return linked.title
+
+    // Last fallbacks: structured fields inside proposal/purpose
+    if (application.purpose && String(application.purpose).trim()) return String(application.purpose).trim().substring(0, 100)
+    if (application.proposal && String(application.proposal).trim()) {
+      // Many proposals include a "Title: ..." line — try to extract it
+      const prop = String(application.proposal)
+      const m = prop.match(/Title:\s*(.+?)(?:\n|$)/i)
+      if (m && m[1]) return m[1].trim()
+      return prop.trim().substring(0, 100)
+    }
+
+    return 'Project Application'
   }
 
   const filteredApplications = applications.filter(app => {
@@ -366,7 +470,7 @@ const ProjectManagement = () => {
                             <div className="flex-1">
                               <div className="flex items-center space-x-3 mb-2">
                                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                                    {application.projects?.title || application.purpose || application.proposal || 'Project Application'}
+                      {getApplicationTitle(application)}
                                   </h3>
                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(application.status)}`}>
                                   {getStatusIcon(application.status)}
@@ -413,6 +517,56 @@ const ProjectManagement = () => {
                                 )}
                               </div>
                             </div>
+                          </div>
+
+                          {/* Progress */}
+                          <div className="mb-4">
+                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Progress
+                            </h4>
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                              {(() => {
+                                // Normalize stored progress which may be either a fraction (0-1)
+                                // or a percentage (0-100). Treat values > 1 as explicit percentages.
+                                const raw = application.progress_project ?? null
+                                const isLegacyEmptyOne = raw === 1 && (!application.progress_notes || application.progress_notes.length === 0)
+                                const pct = (raw === null || raw === undefined || isLegacyEmptyOne)
+                                  ? 1 // default to 1% when no value or legacy empty marker
+                                  : (raw > 1 ? Math.round(raw) : Math.round(raw * 100))
+                                const pctClamped = Math.min(Math.max(pct, 1), 100)
+                                return (
+                                  <div
+                                    className={`h-3 bg-primary-600 dark:bg-primary-400 transition-all`}
+                                    style={{ width: `${pctClamped}%` }}
+                                  />
+                                )
+                              })()}
+                            </div>
+                            <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                              {`Progress: ${(() => {
+                                const raw = application.progress_project ?? null
+                                const isLegacyEmptyOne = raw === 1 && (!application.progress_notes || application.progress_notes.length === 0)
+                                const pct = (raw === null || raw === undefined || isLegacyEmptyOne)
+                                  ? 1
+                                  : (raw > 1 ? Math.round(raw) : Math.round(raw * 100))
+                                return Math.min(Math.max(pct, 1), 100)
+                              })()}%`}
+                            </div>
+
+                            {application.progress_notes && Array.isArray(application.progress_notes) && application.progress_notes.length > 0 && (
+                              <div className="mt-3 text-sm text-gray-700 dark:text-gray-300">
+                                <h5 className="font-medium mb-1">Recent progress notes</h5>
+                                <ul className="space-y-2 max-h-36 overflow-auto">
+                                  {application.progress_notes.slice(-3).reverse().map((n, i) => (
+                                    <li key={i} className="p-2 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded">
+                                      <div className="text-xs text-gray-500 dark:text-gray-400">{n.author || 'admin'} • {formatDate(n.at)}</div>
+                                      <div className="mt-1 text-sm text-gray-700 dark:text-gray-200">{n.note}</div>
+                                      <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">Value: {n.value}</div>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
                           </div>
 
                           {/* Admin Notes */}
@@ -464,6 +618,17 @@ const ProjectManagement = () => {
                                     Reject
                                   </Button>
                                 </>
+                              )}
+                              {/* Show "Update Progress" for non-rejected items while progress < 100% */}
+                              {(application.status !== 'Rejected' && getProgressPercent(application) < 100) && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => openModal(application, 'Progress')}
+                                  className="text-blue-600 hover:text-blue-700 border-blue-600 hover:bg-blue-50"
+                                >
+                                  Update Progress
+                                </Button>
                               )}
                               <Button
                                 variant="outline"
@@ -553,7 +718,7 @@ const ProjectManagement = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              {selectedApplication.action === 'Approved' ? 'Approve Application' : 'Reject Application'}
+              {selectedApplication.action === 'Approved' ? 'Approve Application' : (selectedApplication.action === 'Progress' ? 'Update Progress' : 'Reject Application')}
             </h3>
             
             <div className="space-y-4">
@@ -587,6 +752,34 @@ const ProjectManagement = () => {
                   />
                 </div>
               )}
+
+              {selectedApplication.action === 'Progress' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Progress Value (0-100)
+                  </label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={progressValue}
+                    onChange={(e) => setProgressValue(parseInt(e.target.value, 10))}
+                    className="w-full"
+                  />
+                  <div className="text-sm text-gray-600 dark:text-gray-400">{progressValue}%</div>
+
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mt-4 mb-2">
+                    Progress Note (optional)
+                  </label>
+                  <textarea
+                    value={progressNote}
+                    onChange={(e) => setProgressNote(e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Add a short note about this progress update..."
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end space-x-3 mt-6">
@@ -604,11 +797,21 @@ const ProjectManagement = () => {
               </Button>
               <Button
                 onClick={() => handleApplicationAction(selectedApplication.id, selectedApplication.action)}
-                disabled={actionLoading || (selectedApplication.action === 'Rejected' && !rejectionReason)}
+                disabled={
+                  actionLoading ||
+                  (selectedApplication.action === 'Rejected' && !rejectionReason) ||
+                  (selectedApplication.action === 'Progress' && (progressValue === null || progressValue === undefined))
+                }
                 loading={actionLoading}
-                className={selectedApplication.action === 'Approved' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
+                className={
+                  selectedApplication.action === 'Approved'
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : selectedApplication.action === 'Progress'
+                      ? 'bg-blue-600 hover:bg-blue-700'
+                      : 'bg-red-600 hover:bg-red-700'
+                }
               >
-                {selectedApplication.action === 'Approved' ? 'Approve Project' : 'Reject Application'}
+                {selectedApplication.action === 'Approved' ? 'Approve Project' : (selectedApplication.action === 'Progress' ? 'Save Progress' : 'Reject Application')}
               </Button>
             </div>
           </div>

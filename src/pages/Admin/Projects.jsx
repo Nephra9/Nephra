@@ -12,6 +12,7 @@ import Button from '../../components/UI/Button'
 import LoadingSpinner from '../../components/UI/LoadingSpinner'
 import toast from 'react-hot-toast'
 import { FolderIcon } from '@heroicons/react/24/outline'
+import FileDropzone from '../../components/UI/FileDropzone'
 
 // Simple ProjectsList component
 const ProjectsList = ({ projects, onEditProject, deleteProject }) => {
@@ -121,6 +122,7 @@ const AdminProjects = () => {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [selectedProject, setSelectedProject] = useState(null)
   const [form, setForm] = useState({ title: '', summary: '', description: '', tags: '', published: false })
+  const [image, setImage] = useState(null)
 
   if (initializing) {
     return (
@@ -147,6 +149,8 @@ const AdminProjects = () => {
 
   const handleCreateProject = () => {
     setSelectedProject(null)
+    setForm({ title: '', summary: '', description: '', tags: '', published: false })
+    setImage(null)
     setShowCreateForm(true)
   }
 
@@ -154,6 +158,24 @@ const AdminProjects = () => {
     // load pending requests for admin view
     fetchRequests()
   }, [])
+
+  // when editing a project, prefill form and image
+  useEffect(() => {
+    if (selectedProject) {
+      setForm({
+        title: selectedProject.title || '',
+        summary: selectedProject.summary || '',
+        description: selectedProject.description || '',
+        tags: Array.isArray(selectedProject.tags) ? (selectedProject.tags || []).join(', ') : (selectedProject.tags || ''),
+        published: !!selectedProject.published
+      })
+      if (selectedProject.image_url) {
+        setImage({ url: selectedProject.image_url, path: selectedProject.image_path || null, name: selectedProject.title })
+      } else {
+        setImage(null)
+      }
+    }
+  }, [selectedProject])
 
   const handleFormChange = (field, value) => setForm((f) => ({ ...f, [field]: value }))
 
@@ -171,16 +193,28 @@ const AdminProjects = () => {
         created_at: new Date().toISOString()
       }
 
-      const result = await db.projects.create(payload)
-      if (!result || !result.success) throw result.error || new Error('Failed to create')
-      toast.success('Project created')
+      // include image url if uploaded
+      if (image && image.url) payload.image_url = image.url
+
+      // create or update depending on selectedProject
+      let result
+      if (selectedProject) {
+        // assume db.projects.update(id, payload) is available on the db client
+        result = await db.projects.update(selectedProject.id, payload)
+      } else {
+        result = await db.projects.create(payload)
+      }
+
+      if (!result || !result.success) throw result.error || new Error('Failed to save')
+      toast.success(selectedProject ? 'Project updated' : 'Project created')
       setShowCreateForm(false)
       setForm({ title: '', summary: '', description: '', tags: '', published: false })
+      setImage(null)
       // refresh projects
       window.location.reload()
     } catch (err) {
       console.error(err)
-      toast.error('Failed to create project')
+      toast.error(selectedProject ? 'Failed to update project' : 'Failed to create project')
     }
   }
 
@@ -270,6 +304,34 @@ const AdminProjects = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
                 <textarea value={form.description} onChange={(e) => handleFormChange('description', e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm p-2" rows={6} />
+              </div>
+
+              {/* Image upload via dropzone */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Image</label>
+                <div className="mt-2">
+                  <FileDropzone
+                    multiple={false}
+                    onUploadComplete={(file) => {
+                      // FileDropzone returns either an object or an array depending on `multiple`
+                      const f = Array.isArray(file) ? file[0] : file
+                      if (f) {
+                        setImage(f)
+                        toast.success('Image uploaded')
+                      }
+                    }}
+                  />
+
+                  {image && image.url && (
+                    <div className="mt-3 flex items-center space-x-4">
+                      <img src={image.url} alt={image.name || 'Project image'} className="h-20 w-20 rounded-md object-cover" />
+                      <div className="flex items-start space-x-2">
+                        <div className="text-sm text-gray-700 dark:text-gray-300">{image.name || 'Uploaded image'}</div>
+                        <button type="button" className="text-sm text-red-600 hover:underline ml-4" onClick={() => setImage(null)}>Remove</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div>
