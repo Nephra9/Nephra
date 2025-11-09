@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
+import Lottie from "lottie-react";
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -130,6 +131,18 @@ const Contact = () => {
       <section className="py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <motion.div>
+  <Lottie
+  animationData={null} // set to null initially
+  path="/Welcome.json" // use `path` instead of animationData when loading from public
+  loop
+  autoplay
+  style={{ height: 550, width: 450 }}
+/>
+ <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+              Our support team is always first in line — quick replies, real solutions
+            </h2>
+</motion.div>
             {/* Contact Form */}
             <motion.div
               initial={{ opacity: 0, x: -30 }}
@@ -300,9 +313,12 @@ const Contact = () => {
                   </form>
                 </Card.Content>
               </Card>
+              
             </motion.div>
 
-            {/* Contact Information */}
+           
+          </div>
+           {/* Contact Information */}
             <motion.div
               initial={{ opacity: 0, x: 30 }}
               whileInView={{ opacity: 1, x: 0 }}
@@ -352,7 +368,7 @@ const Contact = () => {
                 ))}
               </div>
 
-              {/* Additional Info */}
+              
               <Card>
                 <Card.Content className="p-6">
                   <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
@@ -365,7 +381,6 @@ const Contact = () => {
                 </Card.Content>
               </Card>
             </motion.div>
-          </div>
         </div>
       </section>
     </div>
