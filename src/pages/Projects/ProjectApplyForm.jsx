@@ -5,9 +5,13 @@ import { useAuth } from "../../context/AuthContext";
 import { db, supabase } from "../../services/supabaseClient";
 import Card from "../../components/UI/Card";
 import Button from "../../components/UI/Button";
-import toast from 'react-hot-toast'
+import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+
 
 const ProjectApplyForm = ({ projectId }) => {
+  const navigate = useNavigate();
+
   const { user } = useAuth();
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -161,6 +165,8 @@ console.log("user id is "+user.id);
 
 
       alert("Application Submitted Successfully!");
+       navigate('/dashboard');
+
     } catch (error) {
       console.error(error);
       alert("Error submitting form");

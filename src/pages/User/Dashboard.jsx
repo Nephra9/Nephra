@@ -6,120 +6,249 @@ import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../services/supabaseClient'
 import Card from '../../components/UI/Card'
 import Button from '../../components/UI/Button'
-import { 
-  PlusIcon, 
-  DocumentTextIcon, 
-  UserIcon, 
-  BellIcon,
-  EyeIcon
+import toast from 'react-hot-toast'
+import {
+  PlusIcon,
+  DocumentTextIcon,
+  UserIcon,
+  EyeIcon,
+  PencilIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline'
 
 const UserDashboard = () => {
-  const { profile, loading, isAuthenticated, user } = useAuth()
+  const { profile, loading, isAuthenticated, user, updateProfile } = useAuth()
   const [applications, setApplications] = useState([])
   const [applicationsLoading, setApplicationsLoading] = useState(true)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [imagePreview, setImagePreview] = useState(null)
+  const [progressData, setProgressData] = useState([])
+  const [progressModalOpen, setProgressModalOpen] = useState(false)
 
+  // Fetch user applications and progress
   useEffect(() => {
-    console.log('Dashboard - Auth state:', { 
-      isAuthenticated, 
-      loading, 
-      user: user?.id, 
-      profile: profile?.id 
-    })
-  }, [isAuthenticated, loading, user, profile])
+    const loadApplications = async () => {
+      if (!user?.id) return
+      setApplicationsLoading(true)
+      try {
+        const [projRes, existingRes] = await Promise.all([
+          supabase
+            .from('project_requests')
+            .select('id, status, created_at, title, progress_project')
+            .eq('user_id', user.id),
+          supabase
+            .from('existing_project_requests')
+            .select('id, status, created_at, title, progress_project')
+            .eq('user_id', user.id)
+        ])
 
-useEffect(() => {
-  const loadApplications = async () => {
-    if (!user?.id) return;
+        const combined = [...(projRes.data || []), ...(existingRes.data || [])]
+        setApplications(combined)
 
-    try {
-      setApplicationsLoading(true);
-      console.log("User data:", user);
-
-      // Fetch from both tables in parallel using supabase (not db)
-      const [projectRequestsRes, existingRequestsRes] = await Promise.all([
-        supabase
-          .from('project_requests')
-          .select('id, status, project_id, created_at')
-          .eq('user_id', user.id),
-        supabase
-          .from('existing_project_requests')
-          .select('id, status, project_id, created_at')
-          .eq('user_id', user.id),
-      ]);
-
-      // Check for errors
-      if (projectRequestsRes.error) {
-        console.error('Error fetching project_requests:', projectRequestsRes.error);
+        // ✅ Only approved projects for progress
+        const approvedProjects = combined.filter((p) => p.status === 'Approved')
+        setProgressData(approvedProjects)
+      } catch (err) {
+        console.error('Error fetching applications:', err)
+      } finally {
+        setApplicationsLoading(false)
       }
-      if (existingRequestsRes.error) {
-        console.error('Error fetching existing_project_requests:', existingRequestsRes.error);
-      }
-
-      console.log("Fetched project_requests:", projectRequestsRes.data);
-      console.log("Fetched existing_project_requests:", existingRequestsRes.data);
-
-      // Combine data
-      const combinedData = [
-        ...(projectRequestsRes.data || []),
-        ...(existingRequestsRes.data || []),
-      ];
-
-      setApplications(combinedData);
-    } catch (error) {
-      console.error('Error loading applications:', error);
-      setApplications([]);
-    } finally {
-      setApplicationsLoading(false);
     }
-  };
+    loadApplications()
+  }, [user?.id])
 
-  loadApplications();
-}, [user?.id]);
+  // Handle profile image upload
+  const handleImageSelect = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) return toast.error('Select a valid image')
+    if (file.size > 5 * 1024 * 1024) return toast.error('Image must be below 5MB')
 
-
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading dashboard...</p>
-        </div>
-      </div>
-    )
+    const reader = new FileReader()
+    reader.onload = (ev) => setImagePreview(ev.target.result)
+    reader.readAsDataURL(file)
+    await uploadAndSaveImage(file)
   }
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-            Access Denied
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            You need to be signed in to access this page.
+  const uploadAndSaveImage = async (file) => {
+    try {
+      setUploadingImage(true)
+      const ext = file.name.split('.').pop()
+      const fileName = `${user.id}-${Date.now()}.${ext}`
+      const filePath = `avatars/${fileName}`
+
+      const { error } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true })
+      if (error) throw error
+
+      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath)
+      const publicUrl = data.publicUrl
+
+      const result = await updateProfile({ profile_url: publicUrl })
+      if (result.success) toast.success('Profile updated successfully!')
+    } catch (err) {
+      console.error(err)
+      toast.error('Image upload failed')
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
+  // Convert DB value (0.22 or 22) to display 22%
+  const normalizeProgress = (value) => {
+    if (value === null || value === undefined) return 0
+    if (value <= 1) return Math.round(value * 100)
+    return Math.round(value)
+  }
+
+  // Progress Modal (only Approved Projects)
+  const ProgressModal = ({ projects, onClose }) => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 max-w-2xl w-full relative">
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-gray-500 hover:text-red-500"
+        >
+          <XMarkIcon className="h-6 w-6" />
+        </button>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+          Approved Project Progress
+        </h2>
+        {projects.length === 0 ? (
+          <p className="text-gray-600 dark:text-gray-400 text-center">
+            No approved projects yet.
           </p>
-          <Button onClick={() => window.location.href = '/auth/login'}>
-            Sign In
-          </Button>
-        </div>
+        ) : (
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+            {projects.map((p) => {
+              const progressValue = normalizeProgress(p.progress_project)
+              return (
+                <div key={p.id} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="flex justify-between mb-1">
+                    <span className="font-medium text-gray-900 dark:text-white">{p.title || 'Project'}</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-300">{p.status}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2.5">
+                    <div
+                      className={`h-2.5 rounded-full ${
+                        
+                         'bg-green-600'
+                      }`}
+                      style={{ width: `${progressValue}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {progressValue}% complete
+                  </p>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
+  if (loading)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <p className="text-gray-600 dark:text-gray-400">Loading dashboard...</p>
       </div>
     )
-  }
+
+  if (!isAuthenticated)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <p className="text-gray-600 dark:text-gray-400">Please sign in to continue.</p>
+      </div>
+    )
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
             Welcome back, {profile?.full_name || 'User'}!
           </h1>
-          
+
+          {/* Profile + Progress Section */}
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-white dark:bg-gray-800 p-6 rounded-2xl shadow mb-8">
+            {/* Profile Image & Name */}
+            <div className="flex items-center space-x-4">
+              <div className="relative group">
+                <img
+                  src={profile?.profile_url || imagePreview || '/default-avatar.png'}
+                  alt="Profile"
+                  className="h-24 w-24 rounded-full object-cover border-4 border-gray-200 dark:border-gray-700"
+                />
+                <label
+                  htmlFor="profileImage"
+                  className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 rounded-full cursor-pointer transition"
+                >
+                  <PencilIcon className="h-6 w-6 text-white" />
+                </label>
+                <input id="profileImage" type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
+                {uploadingImage && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full text-white text-sm">
+                    Uploading...
+                  </div>
+                )}
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  {profile?.full_name || 'User'}
+                </h2>
+                <p className="text-gray-500 dark:text-gray-400">{profile?.email}</p>
+              </div>
+            </div>
+
+            {/* Progress Section */}
+            <div className="mt-6 lg:mt-0 w-full lg:w-1/2">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
+                Approved Project Progress
+              </h3>
+              {progressData.length > 0 ? (
+                <>
+                  <div className="space-y-2">
+                    {progressData.slice(0, 2).map((p) => {
+                      const progressValue = normalizeProgress(p.progress_project)
+                      return (
+                        <div key={p.id}>
+                          <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
+                            <span>{p.title || 'Project'}</span>
+                            <span>{progressValue}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2.5">
+                            <div
+                              className={`h-2.5 rounded-full ${
+                              'bg-green-600'
+                              }`}
+                              style={{ width: `${progressValue}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {progressData.length > 2 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-3"
+                      onClick={() => setProgressModalOpen(true)}
+                    >
+                      View All
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <p className="text-gray-500 dark:text-gray-400">No approved projects yet.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Application Stats */}
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <Card.Content className="p-6 text-center">
@@ -129,25 +258,27 @@ useEffect(() => {
                 <p className="text-gray-600 dark:text-gray-400">Applications</p>
               </Card.Content>
             </Card>
-            
+
             <Card>
               <Card.Content className="p-6 text-center">
                 <h3 className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {applicationsLoading ? '...' : applications.filter(app => app.status === 'Approved').length}
+                  {applicationsLoading ? '...' : applications.filter((a) => a.status === 'Approved').length}
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">Approved</p>
               </Card.Content>
             </Card>
-            
+
             <Card>
               <Card.Content className="p-6 text-center">
                 <h3 className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                  {applicationsLoading ? '...' : applications.filter(app => app.status === 'Pending' || app.status === 'Under Review').length}
+                  {applicationsLoading
+                    ? '...'
+                    : applications.filter((a) => a.status === 'Pending' || a.status === 'Under Review').length}
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">Pending</p>
               </Card.Content>
             </Card>
-            
+
             <Card>
               <Card.Content className="p-6 text-center">
                 <h3 className="text-2xl font-bold text-blue-600 dark:text-blue-400">0</h3>
@@ -158,20 +289,14 @@ useEffect(() => {
 
           {/* Quick Actions */}
           <div className="mt-8">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-              Quick Actions
-            </h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Quick Actions</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Link to="/projects/register">
                 <Card className="hover:shadow-lg transition-shadow duration-300 cursor-pointer">
                   <Card.Content className="p-6 text-center">
                     <PlusIcon className="h-8 w-8 text-primary-600 dark:text-primary-400 mx-auto mb-3" />
-                    <h3 className="font-medium text-gray-900 dark:text-white mb-1">
-                      Register Project
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Submit a new research project
-                    </p>
+                    <h3 className="font-medium text-gray-900 dark:text-white mb-1">Register Project</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Submit a new research project</p>
                   </Card.Content>
                 </Card>
               </Link>
@@ -180,12 +305,8 @@ useEffect(() => {
                 <Card className="hover:shadow-lg transition-shadow duration-300 cursor-pointer">
                   <Card.Content className="p-6 text-center">
                     <DocumentTextIcon className="h-8 w-8 text-blue-600 dark:text-blue-400 mx-auto mb-3" />
-                    <h3 className="font-medium text-gray-900 dark:text-white mb-1">
-                      My Applications
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Track your project applications
-                    </p>
+                    <h3 className="font-medium text-gray-900 dark:text-white mb-1">My Applications</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Track your project applications</p>
                   </Card.Content>
                 </Card>
               </Link>
@@ -194,12 +315,8 @@ useEffect(() => {
                 <Card className="hover:shadow-lg transition-shadow duration-300 cursor-pointer">
                   <Card.Content className="p-6 text-center">
                     <UserIcon className="h-8 w-8 text-green-600 dark:text-green-400 mx-auto mb-3" />
-                    <h3 className="font-medium text-gray-900 dark:text-white mb-1">
-                      Edit Profile
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Update your profile information
-                    </p>
+                    <h3 className="font-medium text-gray-900 dark:text-white mb-1">Edit Profile</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Update your profile information</p>
                   </Card.Content>
                 </Card>
               </Link>
@@ -208,12 +325,8 @@ useEffect(() => {
                 <Card className="hover:shadow-lg transition-shadow duration-300 cursor-pointer">
                   <Card.Content className="p-6 text-center">
                     <EyeIcon className="h-8 w-8 text-purple-600 dark:text-purple-400 mx-auto mb-3" />
-                    <h3 className="font-medium text-gray-900 dark:text-white mb-1">
-                      Browse Projects
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Explore available projects
-                    </p>
+                    <h3 className="font-medium text-gray-900 dark:text-white mb-1">Browse Projects</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Explore available projects</p>
                   </Card.Content>
                 </Card>
               </Link>
@@ -225,9 +338,7 @@ useEffect(() => {
             <Card className="mt-8">
               <Card.Content className="p-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                    Recent Applications
-                  </h2>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Recent Applications</h2>
                   <Link to="/dashboard/my-applications">
                     <Button variant="outline" size="sm">
                       View All
@@ -235,30 +346,39 @@ useEffect(() => {
                   </Link>
                 </div>
                 <div className="space-y-3">
-                  {applications.slice(0, 3).map((application) => (
-                    <div key={application.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  {applications.slice(0, 3).map((a) => (
+                    <div
+                      key={a.id}
+                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                    >
                       <div>
                         <h4 className="font-medium text-gray-900 dark:text-white">
-                          {application.project?.title || 'Project Application'}
+                          {a.title || 'Project Application'}
                         </h4>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Applied: {formatDate(application.created_at)}
+                          Applied: {formatDate(a.created_at)}
                         </p>
                       </div>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        application.status === 'Approved' 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                          : application.status === 'Rejected'
-                          ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                          : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                      }`}>
-                        {application.status}
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          a.status === 'Approved'
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                            : a.status === 'Rejected'
+                            ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                        }`}
+                      >
+                        {a.status}
                       </span>
                     </div>
                   ))}
                 </div>
               </Card.Content>
             </Card>
+          )}
+
+          {progressModalOpen && (
+            <ProgressModal projects={progressData} onClose={() => setProgressModalOpen(false)} />
           )}
         </motion.div>
       </div>
