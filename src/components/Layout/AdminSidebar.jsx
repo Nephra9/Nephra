@@ -24,6 +24,7 @@ const navigation = [
   { name: 'Audit Logs', href: '/admin/audit-logs', icon: ShieldCheckIcon },
   { name: 'Settings', href: '/admin/settings', icon: CogIcon },
   { name: 'Notifications', href: '/admin/notifications', icon: BellIcon },
+  { name: 'Data Migration', href: '/admin/data-migration', icon: DocumentTextIcon },
 ]
 
 const AdminSidebar = ({ open, setOpen }) => {
