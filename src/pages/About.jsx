@@ -14,8 +14,8 @@ const About = () => {
   const values = [
     {
       icon: AcademicCapIcon,
-      title: 'Excellence in Education',
-      description: 'We maintain the highest standards of academic excellence and research integrity in all our programs.'
+      title: 'Change in System',
+      description: 'We want to bring changes in how students deal with their projects and Academics at same time'
     },
     {
       icon: UserGroupIcon,
@@ -83,11 +83,10 @@ const About = () => {
             className="text-center"
           >
             <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
-              About <span className="gradient-text">Nephra</span>
+              About <span className="gradient-text">C-ON</span>
             </h1>
             <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              We are a leading technology education platform that connects talented students with innovative research projects, 
-              providing hands-on experience and mentorship to build the next generation of technology leaders.
+              C-On is a smart academic project platform built for students who want to simplify their semester submissions. We offer both ready-made projects and custom-developed ones designed around your specific ideas and college requirements.
             </p>
           </motion.div>
         </div>
@@ -107,17 +106,15 @@ const About = () => {
                 Our Mission
               </h2>
               <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
-                At Nephra, we believe that technology has the power to transform lives and solve the world's most pressing challenges. 
-                Our mission is to democratize access to cutting-edge technology education by connecting students with innovative research projects 
-                and providing them with the mentorship, resources, and opportunities they need to succeed.
+               At C-On, our mission is to revolutionize the way students handle college project submissions. We understand that students today juggle multiple 
+               responsibilities, and building a full academic project from scratch can be time-consuming and stressful. That’s where we step in.
               </p>
               <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
-                We envision a world where every student, regardless of their background or location, has access to world-class technology education 
-                and the opportunity to contribute to meaningful research that makes a difference.
+               We’re here to eliminate the long hours, confusion, and workload that come with project preparation — empowering students to submit confidently and on time. At C-On, we’re not changing how students learn — we’re changing how they submit.
               </p>
               <div className="flex items-center space-x-2 text-primary-600 dark:text-primary-400">
                 <HeartIcon className="h-6 w-6" />
-                <span className="font-semibold">Making technology education accessible to all</span>
+                <span className="font-semibold">Making project submission easy to all</span>
               </div>
             </motion.div>
             
@@ -154,7 +151,7 @@ const About = () => {
               Our Values
             </h2>
             <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
-              The principles that guide everything we do at Nephra.
+              The principles that guide everything we do at C-ON.
             </p>
           </motion.div>
 
@@ -187,7 +184,7 @@ const About = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="py-24 bg-white dark:bg-gray-800">
+      {/* <section className="py-24 bg-white dark:bg-gray-800">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -224,10 +221,10 @@ const About = () => {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Timeline Section */}
-      <section className="py-24 bg-gray-50 dark:bg-gray-900">
+      {/* <section className="py-24 bg-gray-50 dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -245,7 +242,7 @@ const About = () => {
           </motion.div>
 
           <div className="relative">
-            {/* Timeline line */}
+            
             <div className="absolute left-1/2 transform -translate-x-1/2 h-full w-1 bg-primary-200 dark:bg-primary-800"></div>
             
             <div className="space-y-12">
@@ -276,14 +273,14 @@ const About = () => {
                     </Card>
                   </div>
                   
-                  {/* Timeline dot */}
+                  
                   <div className="absolute left-1/2 transform -translate-x-1/2 h-4 w-4 bg-primary-600 dark:bg-primary-400 rounded-full border-4 border-white dark:border-gray-900"></div>
                 </motion.div>
               ))}
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* CTA Section */}
       <section className="py-24 bg-gradient-to-r from-primary-600 to-secondary-600">

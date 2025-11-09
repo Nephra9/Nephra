@@ -24,6 +24,7 @@ import Signup from './pages/Auth/Signup'
 import ForgotPassword from './pages/Auth/ForgotPassword'
 import ResetPassword from './pages/Auth/ResetPassword'
 import AuthCallback from './pages/Auth/AuthCallback'
+import VerifyEmail from './pages/Auth/VerifyEmail'
 
 // User Pages
 import UserDashboard from './pages/User/Dashboard'
@@ -215,6 +216,11 @@ function App() {
         <Route path="signup" element={
           <PageTransition>
             <Signup />
+          </PageTransition>
+        } />
+        <Route path="verify-email" element={
+          <PageTransition>
+            <VerifyEmail />
           </PageTransition>
         } />
         <Route path="forgot-password" element={
