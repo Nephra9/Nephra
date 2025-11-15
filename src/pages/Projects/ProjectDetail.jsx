@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import formatDate from '../../utils/formatDate'
 import { useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { 
+import {
   ArrowLeftIcon,
   CalendarIcon,
   UserGroupIcon,
@@ -33,7 +33,7 @@ const ProjectDetail = () => {
       setLoading(true)
       const data = await db.projects.getById(id)
       setProject(data)
-      
+
       // Check if user has already applied
       if (isAuthenticated && profile) {
         const requests = await db.projectRequests.getByUser(profile.id)
@@ -90,38 +90,62 @@ const ProjectDetail = () => {
               Back to Projects
             </Link>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8" >
+              <div className="lg:col-span-2" >
                 <div className="flex items-center justify-between mb-4">
+
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                     Open for Applications
                   </span>
+
+
                   <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                     <CalendarIcon className="h-4 w-4 mr-1" />
-                    Published {formatDate(project.published_at)}
+                    Published on {formatDate(project.created_at)}
                   </div>
                 </div>
+                <div style={{ display: "flex",height:"100%"}}>
+                  <div style={{height:"100%"}}>{/* Project Image */}
 
-                <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl mb-6">
-                  {project.title}
-                </h1>
+                    {project.image_url && (
+                      <section className="py-12">
 
-                <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
-                  {project.summary}
-                </p>
+                        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {project.tags?.map((tag, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200"
-                    >
-                      <TagIcon className="h-4 w-4 mr-1" />
-                      {tag}
-                    </span>
-                  ))}
+
+                          <img
+                            src={project.image_url}
+                            alt={project.title}
+                            className="w-full h-64 md:h-96 object-cover"
+                            
+                          />
+
+
+                        </div>
+                      </section>
+                    )}</div>
+                  <div style={{maxWidth:"500px"}}>
+                    <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl mb-6">
+                      {project.title}
+                    </h1>
+
+                    <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
+                      {project.summary}
+                    </p>
+
+                    <div className="flex flex-wrap gap-2 mb-6">
+                      {project.tags?.map((tag, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200"
+                        >
+                          <TagIcon className="h-4 w-4 mr-1" />
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-
                 <div className="flex flex-wrap gap-4 mb-6">
                   {project.project_link && (
                     <a
@@ -156,7 +180,7 @@ const ProjectDetail = () => {
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                       Apply to This Project
                     </h3>
-                    
+
                     {isAuthenticated ? (
                       hasApplied ? (
                         <div className="text-center">
@@ -212,26 +236,7 @@ const ProjectDetail = () => {
         </div>
       </section>
 
-      {/* Project Image */}
-      {project.image_url && (
-        <section className="py-12">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              viewport={{ once: true }}
-              className="aspect-w-16 aspect-h-9 rounded-lg overflow-hidden"
-            >
-              <img
-                src={project.image_url}
-                alt={project.title}
-                className="w-full h-64 md:h-96 object-cover"
-              />
-            </motion.div>
-          </div>
-        </section>
-      )}
+
 
       {/* Project Details */}
       <section className="py-12 bg-white dark:bg-gray-800">
