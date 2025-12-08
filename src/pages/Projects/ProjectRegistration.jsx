@@ -18,7 +18,7 @@ const projectSchema = z.object({
   tech_stack: z.string().min(1, 'Please enter at least one technology'),
   deliverables: z.string().min(1, 'Please enter at least one deliverable'),
   timeline: z.string().min(1, 'Timeline is required'),
-  requirements: z.string().min(10, 'Requirements must be at least 10 characters'),
+
   outcomes: z.string().min(10, 'Expected outcomes must be at least 10 characters')
 })
 
@@ -28,9 +28,23 @@ const ProjectRegistration = () => {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
+  // NOTE: we now use setValue to keep the registered 'deliverables' string in sync
+  const { register, handleSubmit, formState: { errors, isSubmitting }, setValue } = useForm({
     resolver: zodResolver(projectSchema)
   })
+
+  // deliverables checkbox options taken from the placeholder
+  const deliverableOptions = ['Paper', 'Prototype', 'Dataset']
+  const [selectedDeliverables, setSelectedDeliverables] = useState([])
+
+  const onToggleDeliverable = (option) => {
+    setSelectedDeliverables(prev => {
+      const next = prev.includes(option) ? prev.filter(p => p !== option) : [...prev, option]
+      // keep the registered deliverables field (string) in sync for zod validation and submission
+      setValue('deliverables', next.join(', '), { shouldValidate: true })
+      return next
+    })
+  }
 
   const onSubmit = async (data) => {
     if (!user || !profile) {
@@ -41,9 +55,14 @@ const ProjectRegistration = () => {
     try {
       setLoading(true)
 
- 
       const requestedTech = data.tech_stack.split(',').map(t => t.trim()).filter(Boolean)
-      const requestedDeliverables = data.deliverables.split(',').map(t => t.trim()).filter(Boolean)
+
+      // data.deliverables is kept as a comma separated string (updated via setValue above)
+      const requestedDeliverables = typeof data.deliverables === 'string'
+        ? data.deliverables.split(',').map(t => t.trim()).filter(Boolean)
+        : Array.isArray(data.deliverables)
+          ? data.deliverables.map(t => String(t).trim()).filter(Boolean)
+          : []
 
 
       // Prepare the project request data (do NOT create a projects row here - admin will manage projects)
@@ -51,7 +70,7 @@ const ProjectRegistration = () => {
         user_id: user.id,
         project_id: null,
         title: data.title,
-        proposal: `Title: ${data.title}\n\nSummary: ${data.summary}\n\nDescription: ${data.description}\n\nRequirements: ${data.requirements}\n\nExpected Outcomes: ${data.outcomes}`,
+        proposal: `Title: ${data.title}\n\nSummary: ${data.summary}\n\nDescription: ${data.description}\n\nExpected Outcomes: ${data.outcomes}`,
         expected_timeline: data.timeline,
         attachments: [
           {
@@ -60,11 +79,10 @@ const ProjectRegistration = () => {
               title: data.title,
               summary: data.summary,
               description: data.description,
-    
+
               tech_stack: requestedTech,
               deliverables: requestedDeliverables,
-       
-              requirements: data.requirements,
+
               outcomes: data.outcomes,
               submitted_by: profile.name || user.email,
               submitted_at: new Date().toISOString()
@@ -113,7 +131,7 @@ const ProjectRegistration = () => {
     }
   }
 
- 
+
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -221,12 +239,25 @@ const ProjectRegistration = () => {
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Deliverables *
                       </label>
-                      <input 
-                        {...register('deliverables')} 
-                        type="text" 
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500" 
-                        placeholder="Paper, Prototype, Dataset (comma-separated)" 
-                      />
+
+                      {/* Checkbox group built from placeholder options. The selected values are synced to a hidden registered input so existing validation and submission logic works unchanged. */}
+                      <div className="flex flex-wrap gap-3">
+                        {deliverableOptions.map(option => (
+                          <label key={option} className="inline-flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={selectedDeliverables.includes(option)}
+                              onChange={() => onToggleDeliverable(option)}
+                              className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-primary-600 focus:ring-2 focus:ring-primary-500"
+                            />
+                            <span className="text-sm text-gray-700 dark:text-gray-300">{option}</span>
+                          </label>
+                        ))}
+                      </div>
+
+                      {/* Hidden input kept registered so zod validation (string) and the existing submit flow remain unchanged. */}
+                      <input type="hidden" {...register('deliverables')} />
+
                       {errors.deliverables && (
                         <p className="mt-1 text-sm text-red-600 dark:text-red-400">
                           {errors.deliverables.message}
@@ -261,26 +292,11 @@ const ProjectRegistration = () => {
                   </div>
                 </div>
 
-             
+              
 
-                {/* Requirements and Outcomes Section */}
+                {/* Outcomes Section */}
                 <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Requirements *
-                    </label>
-                    <textarea 
-                      {...register('requirements')} 
-                      rows={4} 
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500" 
-                      placeholder="Prerequisites, skills, and requirements" 
-                    />
-                    {errors.requirements && (
-                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                        {errors.requirements.message}
-                      </p>
-                    )}
-                  </div>
+               
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Expected Outcomes *
