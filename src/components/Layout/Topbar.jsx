@@ -2,10 +2,17 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { useSettings } from '../../context/SettingsContext'
+import { searchService } from '../../services/searchService'
 import { 
   BellIcon,
   MagnifyingGlassIcon,
-  Bars3Icon
+  Bars3Icon,
+  UserGroupIcon,
+  FolderIcon,
+  DocumentTextIcon,
+  CheckCircleIcon,
+  Cog6ToothIcon
 } from '@heroicons/react/24/outline'
 import { db } from '../../services/supabaseClient'
 import config from '../../config/environment'
@@ -14,8 +21,15 @@ const Topbar = ({ setSidebarOpen }) => {
   const { signOut } = useAuth()
   const navigate = useNavigate()
   const { profile } = useAuth()
+  const { settings } = useSettings()
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState({ users: [], projects: [] })
+  const [results, setResults] = useState({ 
+    users: [], 
+    projects: [], 
+    applications: [],
+    notifications: [],
+    settings: []
+  })
   const [loading, setLoading] = useState(false)
   const [openResults, setOpenResults] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
@@ -70,18 +84,23 @@ const Topbar = ({ setSidebarOpen }) => {
 
   const doSearch = async (q) => {
     if (!q || q.length < 2) {
-      setResults({ users: [], projects: [] })
+      setResults({ users: [], projects: [], applications: [], notifications: [], settings: [] })
       setLoading(false)
       return
     }
 
     setLoading(true)
     try {
-      const [users, projects] = await Promise.all([
-        db.users.getAllUsers({ search: q }),
-        db.projects.getAll({ search: q })
-      ])
-      setResults({ users: users || [], projects: projects || [] })
+      // Perform comprehensive search
+      const searchResults = await searchService.searchAll(q)
+      
+      // Also search in settings
+      const settingsResults = searchService.searchSettings(q, settings)
+      
+      setResults({ 
+        ...searchResults,
+        settings: settingsResults
+      })
       setOpenResults(true)
     } catch (err) {
       console.error('Search error:', err)
@@ -107,6 +126,39 @@ const Topbar = ({ setSidebarOpen }) => {
     setOpenResults(false)
     setQuery('')
     navigate(`/projects/${id}`)
+  }
+
+  const goToApplication = (id) => {
+    setOpenResults(false)
+    setQuery('')
+    navigate(`/admin/project-management`)
+  }
+
+  const goToNotification = (id) => {
+    setOpenResults(false)
+    setQuery('')
+    navigate(`/admin/notifications`)
+  }
+
+  const goToSettings = (settingKey) => {
+    setOpenResults(false)
+    setQuery('')
+    // Determine which settings tab based on the setting key
+    const tabMap = {
+      'site_title': 'general',
+      'registration_open': 'access',
+      'require_project_approval': 'projects',
+      'email_notifications_enabled': 'notifications',
+      'session_timeout_minutes': 'security',
+      'theme_mode': 'appearance',
+      'maintenance_mode': 'advanced'
+    }
+    
+    const tab = Object.keys(tabMap).find(key => settingKey.includes(key)) 
+      ? tabMap[Object.keys(tabMap).find(key => settingKey.includes(key))]
+      : 'general'
+    
+    navigate(`/admin/settings?tab=${tab}`)
   }
 
   return (
@@ -142,30 +194,90 @@ const Topbar = ({ setSidebarOpen }) => {
             />
 
             {/* Results dropdown */}
-            {openResults && (results.users.length > 0 || results.projects.length > 0) && (
-              <div className="absolute left-0 top-full mt-2 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-50 overflow-hidden">
-                <div className="p-2">
-                  {loading && <div className="text-sm text-gray-500">Searching...</div>}
+            {openResults && (results.users.length > 0 || results.projects.length > 0 || results.applications.length > 0 || results.notifications.length > 0 || results.settings.length > 0) && (
+              <div className="absolute left-0 top-full mt-2 w-full max-w-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-50 overflow-y-auto max-h-96">
+                <div className="p-3">
+                  {loading && <div className="text-sm text-gray-500 dark:text-gray-400 py-4">Searching...</div>}
 
+                  {!loading && results.users.length === 0 && results.projects.length === 0 && results.applications.length === 0 && results.notifications.length === 0 && results.settings.length === 0 && (
+                    <div className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">No results found</div>
+                  )}
+
+                  {/* Users */}
                   {results.users.length > 0 && (
-                    <div className="mb-2">
-                      <div className="px-2 py-1 text-xs text-gray-500 uppercase">Users</div>
+                    <div className="mb-3">
+                      <div className="flex items-center gap-2 px-2 py-1 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                        <UserGroupIcon className="h-4 w-4" />
+                        <span>Users</span>
+                      </div>
                       {results.users.slice(0,5).map(u => (
-                        <button key={u.id} onClick={() => goToUser(u.id)} className="w-full text-left px-2 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm">
+                        <button key={u.id} onClick={() => goToUser(u.id)} className="w-full text-left px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-sm rounded transition-colors">
                           <div className="font-medium text-gray-900 dark:text-white">{u.full_name || u.email}</div>
-                          <div className="text-xs text-gray-500">{u.email}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">{u.email}</div>
                         </button>
                       ))}
                     </div>
                   )}
 
+                  {/* Projects */}
                   {results.projects.length > 0 && (
-                    <div>
-                      <div className="px-2 py-1 text-xs text-gray-500 uppercase">Projects</div>
+                    <div className="mb-3">
+                      <div className="flex items-center gap-2 px-2 py-1 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                        <FolderIcon className="h-4 w-4" />
+                        <span>Projects</span>
+                      </div>
                       {results.projects.slice(0,5).map(p => (
-                        <button key={p.id} onClick={() => goToProject(p.id)} className="w-full text-left px-2 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm">
+                        <button key={p.id} onClick={() => goToProject(p.id)} className="w-full text-left px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-sm rounded transition-colors">
                           <div className="font-medium text-gray-900 dark:text-white">{p.title}</div>
-                          <div className="text-xs text-gray-500 line-clamp-1">{p.summary}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{p.summary}</div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Applications */}
+                  {results.applications.length > 0 && (
+                    <div className="mb-3">
+                      <div className="flex items-center gap-2 px-2 py-1 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                        <DocumentTextIcon className="h-4 w-4" />
+                        <span>Applications</span>
+                      </div>
+                      {results.applications.slice(0,5).map(a => (
+                        <button key={a.id} onClick={() => goToApplication(a.id)} className="w-full text-left px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-sm rounded transition-colors">
+                          <div className="font-medium text-gray-900 dark:text-white">{a.title}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">{a.status}</div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Notifications */}
+                  {results.notifications.length > 0 && (
+                    <div className="mb-3">
+                      <div className="flex items-center gap-2 px-2 py-1 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                        <BellIcon className="h-4 w-4" />
+                        <span>Notifications</span>
+                      </div>
+                      {results.notifications.slice(0,5).map(n => (
+                        <button key={n.id} onClick={() => goToNotification(n.id)} className="w-full text-left px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-sm rounded transition-colors">
+                          <div className="font-medium text-gray-900 dark:text-white">{n.title}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{n.message}</div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Settings */}
+                  {results.settings.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 px-2 py-1 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                        <Cog6ToothIcon className="h-4 w-4" />
+                        <span>Settings</span>
+                      </div>
+                      {results.settings.slice(0,5).map(s => (
+                        <button key={s.id} onClick={() => goToSettings(s.id)} className="w-full text-left px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-sm rounded transition-colors">
+                          <div className="font-medium text-gray-900 dark:text-white capitalize">{s.name}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{String(s.value).substring(0, 60)}</div>
                         </button>
                       ))}
                     </div>

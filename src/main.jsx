@@ -6,6 +6,7 @@ import App from './App.jsx'
 import './index.css'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { ThemeProvider } from './context/ThemeContext.jsx'
+import { SettingsProvider } from './context/SettingsContext.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import NetworkStatus from './components/UI/NetworkStatus.jsx'
 
@@ -13,10 +14,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>
       <BrowserRouter>
-        <ThemeProvider>
-          <AuthProvider>
-            <App />
-            <NetworkStatus />
+        <SettingsProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <App />
+              <NetworkStatus />
             <Toaster
               position="top-right"
               toastOptions={{
@@ -39,8 +41,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
                 },
               }}
             />
-          </AuthProvider>
-        </ThemeProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </SettingsProvider>
       </BrowserRouter>
     </ErrorBoundary>
   </React.StrictMode>,

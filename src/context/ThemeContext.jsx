@@ -12,22 +12,43 @@ export const useTheme = () => {
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState('light')
+  const [settingsLoaded, setSettingsLoaded] = useState(false)
 
   useEffect(() => {
-    // Check for saved theme preference or default to 'light'
-    const savedTheme = localStorage.getItem('nephra-theme')
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    
-    const initialTheme = savedTheme || (prefersDark ? 'dark' : 'light')
-    setTheme(initialTheme)
-    
-    // Apply theme to document
-    applyTheme(initialTheme)
+    // Wait for settings to be loaded from SettingsContext
+    const checkSettings = () => {
+      const savedTheme = localStorage.getItem('theme') // Changed from 'nephra-theme' to match SettingsContext
+      if (savedTheme) {
+        setSettingsLoaded(true)
+        if (savedTheme === 'system') {
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+          const systemTheme = prefersDark ? 'dark' : 'light'
+          setTheme(systemTheme)
+          applyTheme(systemTheme)
+        } else {
+          setTheme(savedTheme)
+          applyTheme(savedTheme)
+        }
+      } else {
+        // Fallback if settings not loaded yet
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        const initialTheme = prefersDark ? 'dark' : 'light'
+        setTheme(initialTheme)
+        applyTheme(initialTheme)
+      }
+    }
+
+    // Check immediately
+    checkSettings()
+
+    // Listen for storage changes (when settings are updated)
+    window.addEventListener('storage', checkSettings)
     
     // Listen for system theme changes
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
     const handleChange = (e) => {
-      if (!localStorage.getItem('nephra-theme')) {
+      const savedTheme = localStorage.getItem('theme')
+      if (savedTheme === 'system' || !savedTheme) {
         const systemTheme = e.matches ? 'dark' : 'light'
         setTheme(systemTheme)
         applyTheme(systemTheme)
@@ -35,7 +56,10 @@ export const ThemeProvider = ({ children }) => {
     }
     
     mediaQuery.addEventListener('change', handleChange)
-    return () => mediaQuery.removeEventListener('change', handleChange)
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange)
+      window.removeEventListener('storage', checkSettings)
+    }
   }, [])
 
   const applyTheme = (newTheme) => {
@@ -53,9 +77,16 @@ export const ThemeProvider = ({ children }) => {
   }
 
   const toggleTheme = () => {
+    // Check if dark mode is enabled in settings
+    const enableDarkMode = localStorage.getItem('enable_dark_mode')
+    if (enableDarkMode === 'false') {
+      // Dark mode is disabled, don't allow toggle
+      return
+    }
+    
     const newTheme = theme === 'light' ? 'dark' : 'light'
     setTheme(newTheme)
-    localStorage.setItem('nephra-theme', newTheme)
+    localStorage.setItem('theme', newTheme)
     applyTheme(newTheme)
   }
 
