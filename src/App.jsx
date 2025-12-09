@@ -31,6 +31,7 @@ import UserDashboard from './pages/User/Dashboard'
 import UserProfile from './pages/User/Profile'
 import UserApplications from './pages/User/Applications'
 import MyApplications from './pages/User/MyApplications'
+import Progress from './pages/User/all-progress-notes'
 
 // Project Pages
 import ProjectRegistration from './pages/Projects/ProjectRegistration'
@@ -260,6 +261,11 @@ function App() {
         <Route path="my-applications" element={
           <PageTransition>
             <MyApplications />
+          </PageTransition>
+        } />
+          <Route path="all-progress" element={
+          <PageTransition>
+            <Progress />
           </PageTransition>
         } />
       </Route>
