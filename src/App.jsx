@@ -32,6 +32,7 @@ import UserProfile from './pages/User/Profile'
 import UserApplications from './pages/User/Applications'
 import MyApplications from './pages/User/MyApplications'
 import Progress from './pages/User/all-progress-notes'
+import FillProfile from './pages/Fill_Profile'
 
 // Project Pages
 import ProjectRegistration from './pages/Projects/ProjectRegistration'
@@ -79,6 +80,11 @@ const ProtectedRoute = ({ children, requiredRole = 'user' }) => {
         </div>
       </div>
     )
+  }
+
+  // Check if profile completion is required
+  if (profile && !profile.profile_done && window.location.pathname !== '/complete-profile') {
+    return <Navigate to="/complete-profile" replace />
   }
 
   // FIXED: Check active status directly
@@ -269,6 +275,13 @@ function App() {
           </PageTransition>
         } />
       </Route>
+
+          {/* Profile Completion Route */}
+          <Route path="/complete-profile" element={
+            <ProtectedRoute requiredRole="user">
+              <FillProfile />
+            </ProtectedRoute>
+          } />
 
       {/* Project Routes */}
       <Route path="/projects" element={<Layout />}>
