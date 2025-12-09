@@ -28,6 +28,8 @@ export const AuthProvider = ({ children }) => {
         
         if (error) {
           console.error('Error getting user:', error)
+          setInitializing(false)
+          setLoading(false)
           return
         }
 
@@ -60,7 +62,7 @@ export const AuthProvider = ({ children }) => {
           // after a short delay to allow auth state to settle.
           setTimeout(async () => {
             await loadUserProfile(session.user.id)
-          }, 1000)
+          }, 500)
         } else if (event === 'SIGNED_OUT') {
           setUser(null)
           setProfile(null)
@@ -70,7 +72,7 @@ export const AuthProvider = ({ children }) => {
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => subscription?.unsubscribe?.()
   }, [])
 
   const loadUserProfile = async (userId) => {
@@ -88,6 +90,7 @@ export const AuthProvider = ({ children }) => {
           await createUserProfile(userId)
           return
         }
+        console.warn('Falling back to temporary profile')
         await buildFallbackProfile(userId)
         return
       }
@@ -96,7 +99,8 @@ export const AuthProvider = ({ children }) => {
       setProfile(data)
     } catch (error) {
       console.error('Profile loading error:', error)
-      await buildFallbackProfile(user?.id || null)
+      // Use the passed userId parameter, not the state
+      await buildFallbackProfile(userId)
     }
   }
 
@@ -146,10 +150,17 @@ export const AuthProvider = ({ children }) => {
   const buildFallbackProfile = async (userId) => {
     try {
       const { data: { user: authUser } } = await supabase.auth.getUser()
-      if (!authUser) return
+      if (!authUser) {
+        console.error('No auth user found, cannot build fallback profile')
+        return
+      }
+
+      // Always use the provided userId or fall back to authUser.id
+      const profileId = userId || authUser.id
+      if (!profileId) return
 
       const fallback = {
-        id: userId || authUser.id,
+        id: profileId,
         full_name: authUser?.user_metadata?.full_name || authUser?.user_metadata?.name || authUser?.email?.split('@')[0] || 'User',
         email: authUser?.email || '',
         role: 'user',
