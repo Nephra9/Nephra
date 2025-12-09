@@ -7,6 +7,8 @@ import { supabase } from '../../services/supabaseClient'
 import Card from '../../components/UI/Card'
 import Button from '../../components/UI/Button'
 import toast from 'react-hot-toast'
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
+
 import {
   PlusIcon,
   DocumentTextIcon,
@@ -17,6 +19,8 @@ import {
 } from '@heroicons/react/24/outline'
 
 const UserDashboard = () => {
+  // NEW STATE
+  const [expanded, setExpanded] = useState(false);
   const { profile, loading, isAuthenticated, user, updateProfile } = useAuth()
   const [applications, setApplications] = useState([])
   const [applicationsLoading, setApplicationsLoading] = useState(true)
@@ -34,11 +38,11 @@ const UserDashboard = () => {
         const [projRes, existingRes] = await Promise.all([
           supabase
             .from('project_requests')
-            .select('id, status, created_at, title, progress_project')
+            .select('id, status, created_at, title, progress_project,progress_notes')
             .eq('user_id', user.id),
           supabase
             .from('existing_project_requests')
-            .select('id, status, created_at, title, progress_project')
+            .select('id, status, created_at, title, progress_project,progress_notes')
             .eq('user_id', user.id)
         ])
 
@@ -204,48 +208,93 @@ const UserDashboard = () => {
             </div>
 
             {/* Progress Section */}
-            <div className="mt-6 lg:mt-0 w-full lg:w-1/2">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
-                Approved Project Progress
-              </h3>
-              {progressData.length > 0 ? (
-                <>
-                  <div className="space-y-2">
-                    {progressData.slice(0, 2).map((p) => {
-                      const progressValue = normalizeProgress(p.progress_project)
-                      return (
-                        <div key={p.id}>
-                          <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
-                            <span>{p.title || 'Project'}</span>
-                            <span>{progressValue}%</span>
-                          </div>
-                          <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2.5">
-                            <div
-                              className={`h-2.5 rounded-full ${
-                              'bg-green-600'
-                              }`}
-                              style={{ width: `${progressValue}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                  {progressData.length > 2 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-3"
-                      onClick={() => setProgressModalOpen(true)}
-                    >
-                      View All
-                    </Button>
-                  )}
-                </>
-              ) : (
-                <p className="text-gray-500 dark:text-gray-400">No approved projects yet.</p>
-              )}
+           {/* Progress Section */}
+<div className="mt-6 lg:mt-0 w-full lg:w-1/2">
+  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
+    Approved Project Progress
+  </h3>
+
+  {progressData.length > 0 ? (
+    <>
+      {/* show only the first project */}
+      {(() => {
+        const p = progressData[0];
+        const progressValue = normalizeProgress(p.progress_project);
+        return (
+          <div key={p.id} className="rounded-xl p-3">
+            {/* title, percentage & down arrow */}
+            <div className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-300 mb-1">
+              <span>{p.title || "Project"}</span>
+
+              <div className="flex items-center space-x-2">
+                <span>{progressValue}%</span>
+
+                <button
+                  onClick={() => setExpanded(!expanded)}
+                  className="hover:scale-110 transition"
+                >
+                  <ChevronDownIcon
+                    className={`h-5 w-5 text-gray-700 dark:text-gray-100 transition-transform duration-300 ${
+                      expanded ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
+
+            {/* progress bar */}
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+              <div
+                className="h-2.5 rounded-full bg-green-600"
+                style={{ width: `${progressValue}%` }}
+              ></div>
+            </div>
+
+            {/* expanded notes */}
+         {expanded && (
+  <div className="mt-4 space-y-3 transition-all duration-300 ease-in-out">
+    {p.progress_notes && p.progress_notes.length > 0 ? (
+      [...p.progress_notes]
+        .sort((a, b) => new Date(b.at) - new Date(a.at))
+        .slice(0, 3)
+        .map((n, idx) => (
+          <div
+            key={idx}
+            className="text-sm text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 p-3 rounded-xl"
+          >
+            <div className="font-semibold">{n.value}% — {n.note}</div>
+            <p className="text-[11px] opacity-70 mt-1">
+              {new Date(n.at).toLocaleString()} • {n.author}
+            </p>
+          </div>
+        ))
+    ) : (
+      <p className="text-xs text-gray-500 dark:text-gray-300 italic">
+        No notes from admin yet.
+      </p>
+    )}
+  <div className="pt-2 w-20">
+  <Link to="/dashboard/all-progress">
+    <Button variant="outline" size="sm" className="w-full">
+      View All
+    </Button>
+  </Link>
+</div>
+
+ 
+  </div>
+)}
+
+          </div>
+        );
+      })()}
+
+    </>
+  ) : (
+    <p className="text-gray-500 dark:text-gray-400">No approved projects yet.</p>
+  )}
+</div>
+
           </div>
 
           {/* Application Stats */}
