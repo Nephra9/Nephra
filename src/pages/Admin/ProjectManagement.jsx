@@ -33,6 +33,8 @@ const ProjectManagement = () => {
   const [progressValue, setProgressValue] = useState(1)
   const [progressNote, setProgressNote] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [applicationToDelete, setApplicationToDelete] = useState(null)
 
   useEffect(() => {
     if (user && hasRole('admin')) {
@@ -215,8 +217,6 @@ const ProjectManagement = () => {
   // This has been intentionally removed: approving a request now only updates its status and admin notes.
 
   const deleteApplication = async (applicationId) => {
-    if (!window.confirm('Are you sure you want to delete this application?')) return
-
     try {
       const application = applications.find(a => a.id === applicationId)
       if (!application) throw new Error('Application not found')
@@ -231,11 +231,18 @@ const ProjectManagement = () => {
       if (error) throw error
 
       toast.success('Application deleted successfully')
+      setShowDeleteModal(false)
+      setApplicationToDelete(null)
       loadData()
     } catch (error) {
       console.error('Error deleting application:', error)
       toast.error('Failed to delete application')
     }
+  }
+
+  const openDeleteModal = (application) => {
+    setApplicationToDelete(application)
+    setShowDeleteModal(true)
   }
 
   const openModal = (application, action) => {
@@ -633,7 +640,7 @@ const ProjectManagement = () => {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => deleteApplication(application.id)}
+                                onClick={() => openDeleteModal(application)}
                                 className="text-red-600 hover:text-red-700 border-red-600 hover:bg-red-50"
                               >
                                 <TrashIcon className="h-4 w-4" />
@@ -815,6 +822,70 @@ const ProjectManagement = () => {
               </Button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && applicationToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6"
+          >
+            <div className="flex items-center mb-4">
+              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mr-4">
+                <TrashIcon className="h-6 w-6 text-red-600 dark:text-red-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Delete Application
+              </h3>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-gray-700 dark:text-gray-300 mb-3">
+                Are you sure you want to delete this application?
+              </p>
+              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-3">
+                <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                  {getApplicationTitle(applicationToDelete)}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Submitted by: {applicationToDelete.users?.full_name || applicationToDelete.users?.email || 'Unknown User'}
+                </p>
+              </div>
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                <p className="text-sm text-red-800 dark:text-red-200 font-medium mb-2">
+                  ⚠️ Warning: This action cannot be undone
+                </p>
+                <ul className="text-sm text-red-700 dark:text-red-300 space-y-1">
+                  <li>• Application will be permanently deleted</li>
+                  <li>• All application data will be removed</li>
+                  <li>• This action is irreversible</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDeleteModal(false)
+                  setApplicationToDelete(null)
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => deleteApplication(applicationToDelete.id)}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                <TrashIcon className="h-4 w-4 mr-2" />
+                Delete Application
+              </Button>
+            </div>
+          </motion.div>
         </div>
       )}
     </div>

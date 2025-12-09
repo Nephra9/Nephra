@@ -111,11 +111,11 @@ const Topbar = ({ setSidebarOpen }) => {
 
   return (
   // Stick below the header so it flows in document order and pages don't need large top padding
-  <div className="sticky top-16 left-0 right-0 lg:left-64 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
+  <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-700 bg-slate-950 px-4 shadow-lg sm:gap-x-6 sm:px-6 lg:px-8 w-full">
       {/* Mobile menu button */}
       <button
         type="button"
-        className="-m-2.5 p-2.5 text-gray-700 dark:text-gray-300 lg:hidden"
+        className="-m-2.5 p-2.5 text-white lg:hidden hover:text-gray-300 transition-colors"
         onClick={() => setSidebarOpen(true)}
       >
         <span className="sr-only">Open sidebar</span>
@@ -130,13 +130,13 @@ const Topbar = ({ setSidebarOpen }) => {
         <div className="relative flex flex-1 items-center">
           <div className="relative w-full">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+              <MagnifyingGlassIcon className="h-5 w-5 text-gray-500" aria-hidden="true" />
             </div>
             <input
               value={query}
               onChange={onChange}
               type="search"
-              className="h-10 block w-full rounded-md border-0 bg-white dark:bg-gray-700 pl-10 pr-3 text-gray-900 dark:text-white placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-primary-500 sm:text-sm"
+              className="h-10 block w-full rounded-md border border-gray-700 bg-gray-900 pl-10 pr-3 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:text-sm"
               placeholder="Search projects and users..."
               onFocus={() => { if (results.users.length || results.projects.length) setOpenResults(true) }}
             />
@@ -178,7 +178,7 @@ const Topbar = ({ setSidebarOpen }) => {
 
         <div className="flex items-center gap-x-4 lg:gap-x-6">
           {/* Notifications */}
-          <button type="button" className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500 relative" onClick={() => navigate('/admin/notifications')}>
+          <button type="button" className="-m-2.5 p-2.5 text-gray-400 hover:text-white relative" onClick={() => navigate('/admin/notifications')}>
             <span className="sr-only">View notifications</span>
             <BellIcon className="h-6 w-6" aria-hidden="true" />
             {unreadCount > 0 && (

@@ -31,7 +31,12 @@ const AdminDashboard = () => {
     publishedProjects: 0,
     pendingApplications: 0,
     approvedApplications: 0,
-    recentProjects: []
+    recentProjects: [],
+    userChange: 0,
+    projectChange: 0,
+    publishedChange: 0,
+    pendingChange: 0,
+    approvedChange: 0
   })
   const [recentLogs, setRecentLogs] = useState([])
   const [logsLoading, setLogsLoading] = useState(false)
@@ -49,7 +54,12 @@ const AdminDashboard = () => {
 
       console.log('Loading dashboard data...')
 
-      // Load users count
+      // Calculate date 30 days ago for comparison
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      const thirtyDaysAgoISO = thirtyDaysAgo.toISOString()
+
+      // Load current users count
       const { count: usersCount, error: usersError } = await supabase
         .from('users')
         .select('*', { count: 'exact', head: true })
@@ -60,7 +70,23 @@ const AdminDashboard = () => {
         console.log('Users count:', usersCount)
       }
 
-      // Load projects count
+      // Load users from 30 days ago
+      const { count: usersCountOld, error: usersOldError } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .lt('created_at', thirtyDaysAgoISO)
+
+      if (usersOldError) {
+        console.error('Old users count error:', usersOldError)
+      }
+
+      // Calculate user growth percentage
+      const usersOld = usersCountOld || 0
+      const userChange = usersOld > 0 
+        ? Math.round(((usersCount - usersOld) / usersOld) * 100)
+        : usersCount > 0 ? 100 : 0
+
+      // Load current projects count
       const { count: projectsCount, error: projectsError } = await supabase
         .from('projects')
         .select('*', { count: 'exact', head: true })
@@ -71,7 +97,23 @@ const AdminDashboard = () => {
         console.log('Projects count:', projectsCount)
       }
 
-      // Load published projects count
+      // Load projects from 30 days ago
+      const { count: projectsCountOld, error: projectsOldError } = await supabase
+        .from('projects')
+        .select('*', { count: 'exact', head: true })
+        .lt('created_at', thirtyDaysAgoISO)
+
+      if (projectsOldError) {
+        console.error('Old projects count error:', projectsOldError)
+      }
+
+      // Calculate project growth percentage
+      const projectsOld = projectsCountOld || 0
+      const projectChange = projectsOld > 0
+        ? Math.round(((projectsCount - projectsOld) / projectsOld) * 100)
+        : projectsCount > 0 ? 100 : 0
+
+      // Load current published projects count
       const { count: publishedCount, error: publishedError } = await supabase
         .from('projects')
         .select('*', { count: 'exact', head: true })
@@ -82,6 +124,23 @@ const AdminDashboard = () => {
       } else {
         console.log('Published projects count:', publishedCount)
       }
+
+      // Load published projects from 30 days ago
+      const { count: publishedCountOld, error: publishedOldError } = await supabase
+        .from('projects')
+        .select('*', { count: 'exact', head: true })
+        .eq('published', true)
+        .lt('created_at', thirtyDaysAgoISO)
+
+      if (publishedOldError) {
+        console.error('Old published count error:', publishedOldError)
+      }
+
+      // Calculate published growth percentage
+      const publishedOld = publishedCountOld || 0
+      const publishedChange = publishedOld > 0
+        ? Math.round(((publishedCount - publishedOld) / publishedOld) * 100)
+        : publishedCount > 0 ? 100 : 0
 
       // Load pending/approved counts from both project_requests and existing_project_requests
       const [prPendingRes, prApprovedRes, eprPendingRes, eprApprovedRes] = await Promise.all([
@@ -103,6 +162,26 @@ const AdminDashboard = () => {
 
       const pendingCount = (prPendingCount || 0) + (eprPendingCount || 0)
       const approvedCount = (prApprovedCount || 0) + (eprApprovedCount || 0)
+
+      // Load old pending/approved counts for comparison
+      const [prPendingOldRes, prApprovedOldRes, eprPendingOldRes, eprApprovedOldRes] = await Promise.all([
+        supabase.from('project_requests').select('*', { count: 'exact', head: true }).eq('status', 'Pending').lt('created_at', thirtyDaysAgoISO),
+        supabase.from('project_requests').select('*', { count: 'exact', head: true }).eq('status', 'Approved').lt('updated_at', thirtyDaysAgoISO),
+        supabase.from('existing_project_requests').select('*', { count: 'exact', head: true }).eq('status', 'Pending').lt('created_at', thirtyDaysAgoISO),
+        supabase.from('existing_project_requests').select('*', { count: 'exact', head: true }).eq('status', 'Approved').lt('updated_at', thirtyDaysAgoISO)
+      ])
+
+      const pendingCountOld = (prPendingOldRes?.count || 0) + (eprPendingOldRes?.count || 0)
+      const approvedCountOld = (prApprovedOldRes?.count || 0) + (eprApprovedOldRes?.count || 0)
+
+      // Calculate application changes
+      const pendingChange = pendingCountOld > 0
+        ? Math.round(((pendingCount - pendingCountOld) / pendingCountOld) * 100)
+        : pendingCount > 0 ? 100 : 0
+
+      const approvedChange = approvedCountOld > 0
+        ? Math.round(((approvedCount - approvedCountOld) / approvedCountOld) * 100)
+        : approvedCount > 0 ? 100 : 0
 
       console.log('Pending applications count (both tables):', pendingCount)
       console.log('Approved applications count (both tables):', approvedCount)
@@ -145,7 +224,12 @@ const AdminDashboard = () => {
         publishedProjects: publishedCount || 0,
         pendingApplications: pendingCount || 0,
         approvedApplications: approvedCount || 0,
-        recentProjects: recentProjects || []
+        recentProjects: recentProjects || [],
+        userChange,
+        projectChange,
+        publishedChange,
+        pendingChange,
+        approvedChange
       })
 
       setRecentLogs(logsData || [])
@@ -204,7 +288,7 @@ const AdminDashboard = () => {
       icon: UserIcon,
       color: 'text-blue-600 dark:text-blue-400',
       bgColor: 'bg-blue-100 dark:bg-blue-900',
-      change: '+12%'
+      change: stats.userChange
     },
     {
       title: 'Total Projects',
@@ -212,7 +296,7 @@ const AdminDashboard = () => {
       icon: FolderIcon,
       color: 'text-green-600 dark:text-green-400',
       bgColor: 'bg-green-100 dark:bg-green-900',
-      change: '+5%'
+      change: stats.projectChange
     },
     {
       title: 'Published Projects',
@@ -220,7 +304,7 @@ const AdminDashboard = () => {
       icon: CheckCircleIcon,
       color: 'text-teal-600 dark:text-teal-400',
       bgColor: 'bg-teal-100 dark:bg-teal-900',
-      change: '+8%'
+      change: stats.publishedChange
     },
     {
       title: 'Pending Applications',
@@ -228,7 +312,7 @@ const AdminDashboard = () => {
       icon: ClockIcon,
       color: 'text-yellow-600 dark:text-yellow-400',
       bgColor: 'bg-yellow-100 dark:bg-yellow-900',
-      change: '+3'
+      change: stats.pendingChange
     },
     {
       title: 'Approved Applications',
@@ -236,7 +320,7 @@ const AdminDashboard = () => {
       icon: DocumentTextIcon,
       color: 'text-purple-600 dark:text-purple-400',
       bgColor: 'bg-purple-100 dark:bg-purple-900',
-      change: '+15%'
+      change: stats.approvedChange
     }
   ]
 
@@ -338,13 +422,18 @@ const AdminDashboard = () => {
                       <p className="text-2xl font-semibold text-gray-900 dark:text-white mt-2">
                         {stat.value}
                       </p>
-                      {stat.change && (
+                      {stat.change !== undefined && stat.change !== 0 && (
                         <span className={`mt-2 text-sm font-medium ${
-                          stat.change.includes('+') 
+                          stat.change > 0
                             ? 'text-green-600 dark:text-green-400' 
                             : 'text-red-600 dark:text-red-400'
                         }`}>
-                          {stat.change}
+                          {stat.change > 0 ? '+' : ''}{stat.change}%
+                        </span>
+                      )}
+                      {(stat.change === undefined || stat.change === 0) && (
+                        <span className="mt-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                          No change
                         </span>
                       )}
                     </div>

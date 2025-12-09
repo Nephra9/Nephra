@@ -19,26 +19,35 @@ export const AuthProvider = ({ children }) => {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [initializing, setInitializing] = useState(true)
+  const [skipNextSignOut, setSkipNextSignOut] = useState(false) // Flag to prevent unwanted SIGNED_OUT events
+  const [sessionRestorationInProgress, setSessionRestorationInProgress] = useState(false) // Track ongoing restoration
 
   // Initialize auth state
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        const { data: { user }, error } = await supabase.auth.getUser()
+        // First, check if there's a valid session in storage
+        const { data: { session } } = await supabase.auth.getSession()
         
-        if (error) {
-          console.error('Error getting user:', error)
-          setInitializing(false)
-          setLoading(false)
-          return
-        }
+        if (session?.user) {
+          console.log('Session found, user:', session.user.id)
+          setUser(session.user)
+          await loadUserProfile(session.user.id)
+        } else {
+          // Try to get the user (this will attempt token refresh)
+          const { data: { user }, error } = await supabase.auth.getUser()
+          
+          if (error) {
+            console.error('Error getting user:', error)
+            setInitializing(false)
+            setLoading(false)
+            return
+          }
 
-        if (user) {
-          setUser(user)
-          // Do not write to the users table during init (may be blocked by RLS).
-          // Profile will be loaded from the `users` table; UI components should
-          // fall back to auth.user.last_sign_in_at when `users.last_login_at` is missing.
-          await loadUserProfile(user.id)
+          if (user) {
+            setUser(user)
+            await loadUserProfile(user.id)
+          }
         }
       } catch (error) {
         console.error('Auth initialization error:', error)
@@ -63,7 +72,22 @@ export const AuthProvider = ({ children }) => {
           setTimeout(async () => {
             await loadUserProfile(session.user.id)
           }, 500)
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          // Handle token refresh - update user to maintain session
+          console.log('Token refreshed for user:', session.user.id)
+          setUser(session.user)
         } else if (event === 'SIGNED_OUT') {
+          // Skip SIGNED_OUT events if:
+          // 1. skipNextSignOut flag is set (admin operation in progress)
+          // 2. Session restoration is in progress
+          if (skipNextSignOut || sessionRestorationInProgress) {
+            console.log('Ignoring SIGNED_OUT event (skipNextSignOut:', skipNextSignOut, ', restorationInProgress:', sessionRestorationInProgress, ')')
+            setSkipNextSignOut(false)
+            // Don't reset sessionRestorationInProgress here - let the component control its lifecycle
+            return
+          }
+          
+          console.log('Processing SIGNED_OUT event - clearing user and profile')
           setUser(null)
           setProfile(null)
         }
@@ -74,6 +98,33 @@ export const AuthProvider = ({ children }) => {
 
     return () => subscription?.unsubscribe?.()
   }, [])
+
+  // Session refresh effect - keeps session alive
+  useEffect(() => {
+    if (!user) return
+
+    // Refresh token every 45 minutes (before 60 minute default expiry)
+    const refreshInterval = setInterval(async () => {
+      try {
+        console.log('Attempting session refresh...')
+        const { data: { session }, error } = await supabase.auth.refreshSession()
+        
+        if (error) {
+          console.error('Session refresh error:', error)
+          return
+        }
+
+        if (session?.user) {
+          console.log('Session refreshed successfully')
+          setUser(session.user)
+        }
+      } catch (error) {
+        console.error('Failed to refresh session:', error)
+      }
+    }, 45 * 60 * 1000) // 45 minutes
+
+    return () => clearInterval(refreshInterval)
+  }, [user])
 
   const loadUserProfile = async (userId) => {
     try {
@@ -394,6 +445,8 @@ export const AuthProvider = ({ children }) => {
     updateProfile,
     hasRole,
     isActive, // Include the isActive function
+    setSkipNextSignOut, // Expose flag setter for admin operations
+    setSessionRestorationInProgress, // Expose restoration flag
     isAuthenticated: !!user,
     isAdmin: hasRole('admin'),
     isSuperAdmin: hasRole('superadmin'),

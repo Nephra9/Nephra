@@ -88,7 +88,7 @@ useEffect(() => {
   }
 
   return (
-    <header className="bg-white dark:bg-gray-800 shadow-soft sticky top-0 z-50 h-16">
+    <header className="bg-white dark:bg-gray-900 shadow-soft sticky top-0 z-50 h-16 border-b border-gray-200 dark:border-gray-800">
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-full" aria-label="Top">
         <div className="flex w-full items-center justify-between h-16">
           {/* Logo */}
@@ -236,7 +236,7 @@ useEffect(() => {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="md:hidden border-t border-gray-200 dark:border-gray-700"
+              className="md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 absolute left-0 right-0 top-16 shadow-lg"
             >
               <div className="px-2 pt-2 pb-3 space-y-1">
                 {navigation.map((item) => (

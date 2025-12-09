@@ -33,9 +33,9 @@ const AdminSidebar = ({ open, setOpen }) => {
   return (
     <>
       {/* Mobile sidebar */}
-      <div className={`lg:hidden ${open ? 'fixed inset-0 z-40 flex' : 'hidden'}`}>
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setOpen(false)} />
-        <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white dark:bg-gray-800">
+      <div className={`lg:hidden ${open ? 'fixed inset-0 z-50 flex' : 'hidden'}`}>
+        <div className="fixed inset-0 bg-black bg-opacity-75" onClick={() => setOpen(false)} />
+        <div className="relative flex-1 flex flex-col max-w-xs w-full bg-slate-900 dark:bg-slate-950 border-r border-gray-700">
           <div className="absolute top-0 right-0 -mr-12 pt-2">
             <button
               type="button"
@@ -46,8 +46,8 @@ const AdminSidebar = ({ open, setOpen }) => {
             </button>
           </div>
           <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
-            <div className="flex-shrink-0 flex items-center px-4">
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+            <div className="flex-shrink-0 flex items-center px-4 mb-2">
+              <h1 className="text-xl font-bold text-white">
                 Admin Panel
               </h1>
             </div>
@@ -58,18 +58,18 @@ const AdminSidebar = ({ open, setOpen }) => {
                   <Link
                     key={item.name}
                     to={item.href}
-                    className={`group flex items-center px-2 py-2 text-base font-medium rounded-md ${
+                    className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                       isActive
-                        ? 'bg-primary-100 text-primary-900 dark:bg-primary-900 dark:text-primary-100'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                     }`}
                     onClick={() => setOpen(false)}
                   >
                     <item.icon
-                      className={`mr-4 flex-shrink-0 h-6 w-6 ${
+                      className={`mr-3 flex-shrink-0 h-5 w-5 ${
                         isActive
-                          ? 'text-primary-500'
-                          : 'text-gray-400 group-hover:text-gray-500 dark:group-hover:text-gray-300'
+                          ? 'text-white'
+                          : 'text-gray-400 group-hover:text-white'
                       }`}
                     />
                     {item.name}
@@ -85,9 +85,9 @@ const AdminSidebar = ({ open, setOpen }) => {
       <div className="hidden lg:block">
         {/* Make desktop sidebar fixed so it aligns with the fixed Topbar */}
         <div className="fixed left-0 top-0 h-full w-64 z-20">
-          <div className="flex flex-col flex-grow bg-white dark:bg-gray-800 pt-5 pb-4 overflow-y-auto border-r border-gray-200 dark:border-gray-700 h-full">
-            <div className="flex items-center flex-shrink-0 px-4">
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+          <div className="flex flex-col flex-grow bg-slate-900 dark:bg-slate-950 pt-5 pb-4 overflow-y-auto border-r border-gray-800 h-full">
+            <div className="flex items-center flex-shrink-0 px-4 mb-2">
+              <h1 className="text-xl font-bold text-white">
                 Admin Panel
               </h1>
             </div>
@@ -99,17 +99,17 @@ const AdminSidebar = ({ open, setOpen }) => {
                     <Link
                       key={item.name}
                       to={item.href}
-                      className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
+                      className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                         isActive
-                          ? 'bg-primary-100 text-primary-900 dark:bg-primary-900 dark:text-primary-100'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                       }`}
                     >
                       <item.icon
-                        className={`mr-3 flex-shrink-0 h-6 w-6 ${
+                        className={`mr-3 flex-shrink-0 h-5 w-5 ${
                           isActive
-                            ? 'text-primary-500'
-                            : 'text-gray-400 group-hover:text-gray-500 dark:group-hover:text-gray-300'
+                            ? 'text-white'
+                            : 'text-gray-400 group-hover:text-white'
                         }`}
                       />
                       {item.name}
